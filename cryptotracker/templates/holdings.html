@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<section class="section">
+    <div class="container">
+        <h1 class="title">Total holdings for {{user}}</h1>
+        {% if assets %}
+        <div class="columns is-multiline">
+            {% for cryptocurrency, values in assets.items %}
+                <div class="column is-one-half">
+                    <div class="card">
+                        <header class="card-header">
+                            <p class="card-header-title">{{ cryptocurrency }}</p>
+                        </header>
+                        <div class="card-content">
+                            <div class="content">
+                                <p>Amount: {{ values.amount }}</p>
+                                <p>Amount (EUR): {{ values.amount_eur }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        {% else %}
+    <p>This portfolio has no funds.</p>
+{% endif %}
+<div class="buttons">
+    <a class="button is-primary mt-6" href="{% url "portfolio" %}">              <strong>Back to {{user}}'s portfolio</strong>
+    </a>
+
+  </div>
+
+    </div>
+</section>
+    {% endblock content %}

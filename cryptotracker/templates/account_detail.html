@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<section class="section">
+    <div class="container">
+        <h1 class="title">Assets in {{account.public_address}}</h1>
+        {% if assets %}
+        <div class="columns is-multiline">
+            {% for asset in assets %}
+                <div class="column is-one-half">
+                    <div class="card">
+                        <header class="card-header">
+                            <p class="card-header-title">{{ asset.cryptocurrency }}</p>
+                        </header>
+                        <div class="card-content">
+                            <div class="content">
+                                <p>Amount: {{ asset.amount }}</p>
+                                <p>Amount (EUR): {{ asset.amount_eur }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        {% else %}
+    <p>This account has no funds.</p>
+{% endif %}
+<div class="buttons">
+    <a class="button is-primary mt-6" href="{% url "accounts" %}">              <strong>Back to accounts</strong>
+    </a>
+    <form action="{% url 'delete_account' account.public_address %}" method="post" onsubmit="return confirm('Are you sure you want to delete this account?')">
+        {% csrf_token %}
+        <button type="submit" class="button is-danger mt-6">Delete Account</button>
+    </form>
+
+  </div>
+
+    </div>
+</section>
+    {% endblock content %}
