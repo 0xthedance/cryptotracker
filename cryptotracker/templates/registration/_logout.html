@@ -1,6 +1,7 @@
 <form method="post" action="{% url 'logout' %}">
     {% csrf_token %}
     {{ form.as_p }}
-    <input type="submit" value="Logout" />
-    <input type="hidden" name="next" value="{% url 'home' %}" />
-</form>
+
+        <input class="button is-dark" type="submit" value="Logout" />
+        <input type="hidden" name="next" value="{% url 'home' %}" />
+    </form>

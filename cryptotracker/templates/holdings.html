@@ -1,31 +1,72 @@
 {% extends "base.html" %}
+{% load static %}
+
 
 {% block content %}
 
 <section class="section">
     <div class="container">
-        <h1 class="title">Total holdings for {{user}}</h1>
+        <h1 class="title">Assets</h1>
         {% if assets %}
-        <div class="columns is-multiline">
-            {% for cryptocurrency, values in assets.items %}
-                <div class="column is-one-half">
-                    <div class="card">
-                        <header class="card-header">
-                            <p class="card-header-title">{{ cryptocurrency }}</p>
-                        </header>
-                        <div class="card-content">
-                            <div class="content">
-                                <p>Amount: {{ values.amount }}</p>
-                                <p>Amount (EUR): {{ values.amount_eur }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
+        <table class="table is-fullwidth is-striped">
+            <thead>
+                <tr>
+                    <th>Token</th>
+                    <th>Amount</th>
+                    <th>EUR value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cryptocurrency, values in assets.items %}
+                <tr>
+                    <td><span class="icon-text">
+                        <span class="icon">
+                            <img src="{% static values.image %}" alt="{{ cryptocurrency }} logo" style="width: 24px; height: 24px;">
+                        </span>
+                        <span>{{ cryptocurrency }}</span>
+                    </span></td>
+                    <td>{{ values.amount }}</td>
+                    <td>{{ values.amount_eur }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
         {% else %}
-    <p>This portfolio has no funds.</p>
-{% endif %}
+        <p>This portfolio has no funds.</p>
+        {% endif %}
+    </div>
+</div>
+<div class="container">
+    <h1 class="title my-6">Staking</h1>
+    {% if total_eth_staking %}
+    <table class="table is-fullwidth is-striped">
+        <thead>
+            <tr>
+                <th>Pool</th>
+                <th>Nº Validators</th>
+                <th>Balance</th>
+                <th>Balance (EUR)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="icon-text">
+                    <span class="icon">
+                        <img src="{% static "cryptotracker/logos/ethereum_staking.png" %}" alt="eth staking logo" style="width: 24px; height: 24px;">
+                    </span>
+                    <span>ETH</span>
+                </span></td>
+                <td>{{ total_eth_staking.num_validators }}</td>
+                <td>{{ total_eth_staking.balance }}</td>
+                <td>{{ total_eth_staking.balance_eur }}</td>
+            </tr>
+        </tbody>
+    </table>
+    {% else %}
+    <p>This portfolio has staking.</p>
+    {% endif %}
+
+
 <div class="buttons">
     <a class="button is-primary mt-6" href="{% url "portfolio" %}">              <strong>Back to {{user}}'s portfolio</strong>
     </a>
