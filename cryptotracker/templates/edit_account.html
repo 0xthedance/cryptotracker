@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <h1 class="title">Edit Account</h1>
+    <form method="post">
+        {% csrf_token %}
+        <div class="field">
+            <label class="label">Wallet Type</label>
+            <div class="control">
+                {{ form2.wallet_type }}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">Name</label>
+            <div class="control">
+                {{ form2.name }}
+            </div>
+        </div>
+
+        <button type="submit" class="button is-primary">Save changes</button>
+
+    </form>
+</div>
+
+{% endblock %}

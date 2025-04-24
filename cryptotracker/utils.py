@@ -1,7 +1,9 @@
-import datetime
 from decimal import Decimal
 
+
 import requests
+
+from cryptotracker.models import CryptocurrencyPrice, Cryptocurrency
 
 
 def APIquery(url, params) -> dict:
@@ -21,7 +23,7 @@ def APIquery(url, params) -> dict:
     return response.json()
 
 
-def fetch_historical_price(crypto_id, currency="eur"):
+def fetch_historical_price(crypto_id, today, currency="eur"):
     """
     today = datetime.date.today().strftime("%d/%m/%y")
 
@@ -60,9 +62,21 @@ def fetch_historical_price(crypto_id, currency="eur"):
     days = today - prices_dict[1]['time']
     print(days)'
     """
-    prices_dict = [{"time": "today", "price": 1}]
 
-    return prices_dict
+
+def fetch_cryptocurrency_price(crypto_ids: list) -> list:
+    """
+    Fetches the current price of each cryptocurrency from the Coingecko API.
+    Returns:
+        list: A list of dictionaries containing the current price of each cryptocurrency.
+    """
+    url = "https://api.coingecko.com/api/v3/simple/price"
+    params = {
+        "ids": ",".join(crypto_ids),
+        "vs_currencies": "eur",
+    }
+    data = APIquery(url, params)
+    return data
 
 
 def convertWeiIntStr(value: int) -> str:
@@ -79,4 +93,37 @@ def convertWeiIntStr(value: int) -> str:
     return f"{value.normalize():,.3f} ether"
 
 
-# print(fetch_assets('0xb26E1cD0AfC11aAc6a9D27F531Aa3F2559Cf289f'))
+def get_last_price(crypto_id: str, snapshot_date) -> Decimal:
+    """
+    Fetches the last price of a cryptocurrency from the database.
+    Args:
+        crypto_id (str): The ID of the cryptocurrency.
+        snapshot_date (datetime): The date of the snapshot.
+    Returns:
+        Decimal: The last price of the cryptocurrency.
+    """
+    cryptocurrency = Cryptocurrency.objects.get(name=crypto_id)
+    current_price = CryptocurrencyPrice.objects.filter(
+        cryptocurrency=cryptocurrency, date__date=snapshot_date
+    ).first()
+    # if not current_price:
+    #    current_price = fetch_historical_price(token.name, date= token_last_snapshot.snapshot_date.date())[-1]["price"]
+
+    return current_price.price
+
+
+def get_total_value(aggregated_assets: dict, total_eth_staking: dict) -> float:
+    """
+    Calculates the total value of the aggregated assets.
+    Args:
+        aggregated_assets (dict): A dictionary containing the aggregated assets and their values.
+        total_eth_staking (dict): A dictionary containing the total ETH staking information.
+    Returns:
+        float: The total value of the aggregated assets.
+    """
+    total_value = 0
+    for asset in aggregated_assets.values():
+        total_value += asset["amount_eur"]
+    if total_eth_staking:
+        total_value += total_eth_staking["balance_eur"]
+    return total_value

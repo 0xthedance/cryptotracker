@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definitionc
 
 INSTALLED_APPS = [
+    'django_celery_beat',
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -69,6 +70,11 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "dcp.wsgi.application"
+
+
+# Celery settings
+CELERY_BROKER_URL = "redis://localhost:6379"
+CELERY_RESULT_BACKEND = "redis://localhost:6379"
 
 
 # Database

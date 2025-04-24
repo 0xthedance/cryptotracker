@@ -1,25 +1,9 @@
-{% extends "base.html" %}
-
+{% extends "holdings.html" %}
+{% block title %} Portfolio {% endblock %}
 {% block content %}
+  
 
-<div class="container">
-
-    <h1 class="title is-1 is-spaced has-text-primary has-text-centered mt-6">  Hello, {{ user.username}}!</h1>
-
-    <div class="buttons">
-        <a class="button is-primary" href="{% url "accounts" %}">              <strong>Accounts</strong>
-        </a>
-
-      </div>
-    
-      <div class="buttons">
-        <a class="button is-primary" href="{% url "holdings" %}">              <strong>Total holdings</strong>
-        </a>
-
-      </div>
+  {{block.super}}
 
 
-
-
-</div>
-    {% endblock content %}
+  {% endblock content %}

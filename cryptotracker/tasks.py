@@ -1,0 +1,76 @@
+from celery import shared_task
+from datetime import datetime
+from celery.exceptions import TimeoutError
+from cryptotracker.tokens import fetch_assets
+from cryptotracker.models import (
+    Account,
+    SnapshotDate,
+    Cryptocurrency,
+    CryptocurrencyPrice,
+)
+from cryptotracker.staking import fetch_staking_assets
+from cryptotracker.utils import fetch_cryptocurrency_price
+
+
+@shared_task
+def update_cryptocurrency_price():
+    """
+    Fetches the current price of each cryptocurrency every 24h from the Coingecko API and stores it in the database.
+    This function uses the Coingecko API to fetch the current price of each cryptocurrency and stores it in the database.
+    """
+    cryptocurrencies = Cryptocurrency.objects.all()
+    crypto_ids = [crypto.name for crypto in cryptocurrencies]
+
+    prices = fetch_cryptocurrency_price(crypto_ids)
+    for crypto in crypto_ids:
+        crypto_price = CryptocurrencyPrice(
+            cryptocurrency=Cryptocurrency.objects.get(name=crypto),
+            price=prices[crypto]["eur"],
+            date=datetime.now(),
+        )
+        crypto_price.save()
+        print(f"Price of {crypto} updated to {prices[crypto]['eur']} EUR")
+
+
+@shared_task
+def update_assets_database():
+    """
+    Fetches the assets of a user every 24h from the Ethereum blockchain and stores them in the database.
+    This function uses the Ape library to interact with the Ethereum blockchain and fetch the balance of each token.
+    It also fetches the current price of each token using the fetch_historical_price function from Coingeko app
+    """
+
+    accounts = Account.objects.all()
+    for account in accounts:
+        try:
+            fetch_assets(account)
+        except TimeoutError:
+            print("TimeoutError: Retrying...")
+            continue
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            continue
+        SnapshotDate.objects.create(
+            date=datetime.now(),
+            account=account,
+        )
+
+
+@shared_task
+def update_staking_assets():
+    """
+    Fetches the staking assets of a user every 24h from the Ethereum blockchain and stores them in the database.
+    This function uses the Ape library to interact with the Ethereum blockchain and fetch the balance of each token.
+    It also fetches the current price of each token using the fetch_historical_price function from Coingeko app
+    """
+
+    accounts = Account.objects.all()
+    for account in accounts:
+        try:
+            fetch_staking_assets(account)
+        except TimeoutError:
+            print("TimeoutError: Retrying...")
+            continue
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            continue

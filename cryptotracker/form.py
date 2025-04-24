@@ -7,7 +7,7 @@ from cryptotracker.models import Account
 class AccountForm(ModelForm):
     class Meta:
         model = Account
-        fields = ["public_address"]
+        fields = ["public_address", "wallet_type", "name"]
 
     def clean_public_address(self):
 
@@ -33,3 +33,9 @@ class AccountForm(ModelForm):
             raise forms.ValidationError("Public address already exists")
 
         return public_address
+
+
+class EditAccountForm(ModelForm):
+    class Meta:
+        model = Account
+        fields = ["wallet_type", "name"]

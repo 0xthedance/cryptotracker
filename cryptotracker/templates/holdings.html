@@ -6,27 +6,36 @@
 
 <section class="section">
     <div class="container">
+        <div class="subtitle is-size-7 has-text-right">
+            <p>Last updated: {{ last_snapshot_date }}</p>
+        <a class="button is-small is-light mt-3 has-text-right" href="{% url 'refresh'%}">
+            Refresh
+        </a>
+    </div>
         <h1 class="title">Assets</h1>
         {% if assets %}
+        <div class="subtitle has-text-right has-text-weight-bold">
+            <p>Total value: {{ portfolio_value }} €</p>
+        </div>
         <table class="table is-fullwidth is-striped">
             <thead>
                 <tr>
-                    <th>Token</th>
-                    <th>Amount</th>
-                    <th>EUR value</th>
+                    <th >Token</th>
+                    <th style="text-align: right;">Amount</th>
+                    <th style="text-align: right;">EUR value</th>
                 </tr>
             </thead>
             <tbody>
                 {% for cryptocurrency, values in assets.items %}
                 <tr>
-                    <td><span class="icon-text">
+                    <td ><span class="icon-text">
                         <span class="icon">
                             <img src="{% static values.image %}" alt="{{ cryptocurrency }} logo" style="width: 24px; height: 24px;">
                         </span>
                         <span>{{ cryptocurrency }}</span>
                     </span></td>
-                    <td>{{ values.amount }}</td>
-                    <td>{{ values.amount_eur }}</td>
+                    <td style="text-align: right;">{{ values.amount }} {{cryptocurrency}}</td>
+                    <td style="text-align: right;">{{ values.amount_eur }} €</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -46,6 +55,7 @@
                 <th>Nº Validators</th>
                 <th>Balance</th>
                 <th>Balance (EUR)</th>
+                <th>Rewards</th>
             </tr>
         </thead>
         <tbody>
@@ -59,20 +69,13 @@
                 <td>{{ total_eth_staking.num_validators }}</td>
                 <td>{{ total_eth_staking.balance }}</td>
                 <td>{{ total_eth_staking.balance_eur }}</td>
+                <td>+ {{ total_eth_staking.rewards }}</td>
             </tr>
         </tbody>
     </table>
     {% else %}
-    <p>This portfolio has staking.</p>
+    <p>This portfolio has no staking.</p>
     {% endif %}
 
 
-<div class="buttons">
-    <a class="button is-primary mt-6" href="{% url "portfolio" %}">              <strong>Back to {{user}}'s portfolio</strong>
-    </a>
-
-  </div>
-
-    </div>
-</section>
     {% endblock content %}

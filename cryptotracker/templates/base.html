@@ -6,6 +6,7 @@
     <title>0xthedance</title>
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
 </head>
 {% load static %}
 
@@ -26,7 +27,7 @@
     </a>
   </div>
 
-  <div id="navbarBasicExample" class="navbar-menu">
+
     <div class="navbar-end">
       <div class="navbar-item">
 
@@ -49,6 +50,33 @@
     </div>
     </div>
  </nav>
+
+ {% if request.user.is_authenticated %}
+ <div class="tabs is-boxed mt-6 is-centered">
+   <ul>
+     <!-- Accounts Tab -->
+     <li class="{% if request.resolver_match.url_name == 'accounts' %}is-active{% endif %}">
+       <a href="{% url 'accounts' %}">
+         <span>Accounts</span>
+       </a>
+     </li>
+ 
+     <!-- Portfolio Tab -->
+     <li class="{% if request.resolver_match.url_name == 'portfolio' %}is-active{% endif %}">
+       <a href="{% url 'portfolio' %}">
+         <span>Portfolio</span>
+       </a>
+     </li>
+ 
+     <!-- Staking Tab -->
+     <li class="{% if request.resolver_match.url_name == 'staking' %}is-active{% endif %}">
+       <a href="{% url 'staking' %}">
+         <span>Staking</span>
+       </a>
+     </li>
+   </ul>
+ </div>
+ {% endif %}
 
 {% block content %}
 {% endblock content %}

@@ -4,28 +4,32 @@
 
 <div class="container">
 
-    <h1 class="title is-1 is-spaced has-text-primary has-text-centered mt-6">  Staking</h1>
-    <div class="fixed-grid">
-        <div class="grid">
-          <div class="cell">Cell 1</div>
-          <div class="cell">Cell 2</div>
-          <div class="cell">Cell 3</div>
-          <div class="cell">Cell 4</div>
-          <div class="cell">Cell 5</div>
-          <div class="cell">Cell 6</div>
-          <div class="cell">Cell 7</div>
-          <div class="cell">Cell 8</div>
-          <div class="cell">Cell 9</div>
-          <div class="cell">Cell 10</div>
-          <div class="cell">Cell 11</div>
-          <div class="cell">Cell 12</div>
-        </div>
-      </div>
-    
+  {% if validators %}
+  <table class="table is-fullwidth is-striped">
+      <thead>
+          <tr>
+              <th>Index</th>
+              <th>Withdraw Credentials</th>
+              <th>Balance</th>
+              <th>Status</th>
+              <th>Rewards</th>
+          </tr>
+      </thead>
+      <tbody>
+        {% for validator in validators %}
+          <tr>
+              <td>{{ validator.validator_index }}</td>
+              <td>{{ validator.account.public_address }}</td>
+              <td>{{ validator.balance }}</td>
+              <td>{{ validator.status }}</td>
+              <td>+ {{ validator.rewards }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+  </table>
+  {% else %}
+  <p>This portfolio has no staking.</p>
+  {% endif %}
 
-       
-            </div>
-
-            
 </div>
 {% endblock content %}

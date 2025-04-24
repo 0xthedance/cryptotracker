@@ -1,6 +1,13 @@
+from datetime import datetime
 from ape import Contract, networks
 
-from cryptotracker.utils import fetch_historical_price
+from cryptotracker.utils import get_last_price
+from cryptotracker.models import (
+    Account,
+    SnapshotAssets,
+    Cryptocurrency,
+    CryptocurrencyPrice,
+)
 
 TOKENS = [
     {
@@ -42,39 +49,32 @@ TOKENS = [
 ]
 
 
-def fetch_assets(user_address: str) -> list[dict]:
+def fetch_assets(account: Account) -> None:
     """
-    Fetches the assets of a user from the Ethereum blockchain.
-    Args:
-        user_address (str): The address of the user.
-    Returns:
-        list[dict]: A list of dictionaries containing the assets and their values.
+    Fetches the assets of a user from the Ethereum blockchain and stores them in the database.
+    This function uses the Ape library to interact with the Ethereum blockchain and fetch the balance of each token.
+    It also fetches the current price of each token using the fetch_historical_price function from Coingeko app
+
     """
-
-    assets_dict = []
-    print(type(user_address))
-
     with networks.parse_network_choice("ethereum:mainnet:alchemy") as provider:
-
+        public_address = account.public_address
         # Fetch tokens balance
-        for token in TOKENS:
-            if token["name"] == "ethereum":
-                token_asset = provider.get_balance(user_address)
+        for token in Cryptocurrency.objects.all():
+            if token.name == "ethereum":
+                token_asset = provider.get_balance(public_address)
             else:
-                token_contract = Contract(token["address"])
-                token_asset = token_contract.balanceOf(user_address)
+                token_contract = Contract(token.address)
+                token_asset = token_contract.balanceOf(public_address)
 
             if token_asset != 0:
-                current_price = fetch_historical_price(token["name"])[-1]["price"]
-                assets_dict.append(
-                    {
-                        "cryptocurrency": token["symbol"],
-                        "amount": token_asset / 1e18,  # Convert to token
-                        "amount_eur": (token_asset / 1e18) * current_price,
-                        "image": token["image"],
-                    }
+
+                asset_snapshot = SnapshotAssets(
+                    cryptocurrency=token,
+                    account=account,
+                    quantity=token_asset / 1e18,
+                    snapshot_date=datetime.now(),
                 )
-        return assets_dict
+                asset_snapshot.save()
 
 
 def fetch_aggregated_assets(accounts: list) -> dict:
@@ -89,22 +89,38 @@ def fetch_aggregated_assets(accounts: list) -> dict:
     aggregated_assets = {}
 
     for account in accounts:
-        assets_dict = fetch_assets(account.public_address)
+        assets_list = SnapshotAssets.objects.filter(account=account)
+        if not assets_list:
+            continue
 
-        for asset in assets_dict:
-            if asset["cryptocurrency"] in aggregated_assets:
-                aggregated_assets[asset["cryptocurrency"]]["amount"] += asset["amount"]
-                aggregated_assets[asset["cryptocurrency"]]["amount_eur"] += asset[
-                    "amount_eur"
-                ]
+        for token in Cryptocurrency.objects.all():
+            token_last_snapshot = (
+                assets_list.filter(cryptocurrency=token)
+                .order_by("-snapshot_date")
+                .first()
+            )
+
+            if not token_last_snapshot:
+                continue
+
+            current_price = get_last_price(
+                token.name, token_last_snapshot.snapshot_date.date()
+            )
+
+            asset = token_last_snapshot
+
+            if asset.cryptocurrency.symbol in aggregated_assets:
+                aggregated_assets[asset.cryptocurrency.symbol][
+                    "amount"
+                ] += asset.quantity
+
             else:
-                aggregated_assets[asset["cryptocurrency"]] = {
-                    "amount": asset["amount"],
-                    "amount_eur": asset["amount_eur"],
-                    "image": asset["image"],
+                aggregated_assets[asset.cryptocurrency.symbol] = {
+                    "amount": asset.quantity,
+                    "image": asset.cryptocurrency.image,
+                    "last_snapshot_date": asset.snapshot_date,
                 }
-    for key, value in aggregated_assets.items():
-        value["amount"] = f"{value['amount']:,.2f}".ljust(16) + key
-        euro = "€"
-        value["amount_eur"] = f'{value["amount_eur"]:,.2f}'.ljust(16) + euro
+            aggregated_assets[asset.cryptocurrency.symbol]["amount_eur"] = (
+                aggregated_assets[asset.cryptocurrency.symbol]["amount"] * current_price
+            )
     return aggregated_assets

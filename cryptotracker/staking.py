@@ -1,6 +1,10 @@
 from decimal import Decimal
+from datetime import datetime
 
-from cryptotracker.utils import APIquery, fetch_historical_price
+from django.db.models import Max
+
+from cryptotracker.utils import APIquery, get_last_price
+from cryptotracker.models import SnapshotETHValidator
 
 BEACONCHAN_API = "https://beaconcha.in/api/v1/validator"
 
@@ -30,6 +34,34 @@ class ValidatorDetails:
         return f"ValidatorDetails(index={self.index}, public_key={self.public_key}, withdrawal_credentials={self.withdrawal_credentials}, balance={self.balance}, status={self.status}, activation_epoch={self.activation_epoch})"
 
 
+def get_last_validators(accounts: list) -> list[SnapshotETHValidator]:
+    """
+    Get the last staking assets for a list of accounts.
+    Args:
+        accounts (list): A list of Account objects.
+    Returns:
+        list: A list of SnapshotETHValidator objects.
+    """
+    last_validators = []
+    validators = SnapshotETHValidator.objects.filter(account__in=accounts)
+    if not validators:
+        return None
+
+    # Group by validator_index and get the latest snapshot_date for each group
+    latest_snapshots = validators.values(
+        "validator_index"
+    ).annotate(  # Group by validator_index
+        latest_snapshot_date=Max("snapshot_date")
+    )  # Get the latest snapshot_date for each group
+
+    # Fetch the full entries for the latest snapshots
+    last_validators = validators.filter(
+        snapshot_date__in=[entry["latest_snapshot_date"] for entry in latest_snapshots]
+    )
+
+    return last_validators
+
+
 def get_aggregated_staking(accounts: list) -> dict:
     """
     Get the aggregated staking information for a list of accounts.
@@ -39,26 +71,55 @@ def get_aggregated_staking(accounts: list) -> dict:
         dict: A dictionary containing the aggregated staking information.
     """
     total_eth_staking = {}
-    num_validators = 0
+    num_validators = int(0)
     balance = int(0)
-    for account in accounts:
-        validators = get_validators_from_withdrawal(account.public_address)
-        print(f"Validators for {account.public_address}: {validators}")
-        if validators == []:
-            continue
-        validator_details = get_validators_info(validators)
-        num_validators += len(validator_details)
-        print(num_validators)
-        for validator in validator_details:
-            balance += validator.balance
-    current_price = fetch_historical_price("ethereum")[-1]["price"]
-    balance_eur = (balance / 10e8) * current_price
+    rewards = int(0)
+    last_validators = get_last_validators(accounts)
+    if last_validators is None:
+        return None
+    num_validators = len(last_validators)
+    for validator in last_validators:
+        balance += validator.balance
+        rewards += validator.rewards
+    current_price = get_last_price("ethereum", last_validators[0].snapshot_date.date())
+    balance_eur = balance * current_price
     total_eth_staking = {
         "num_validators": num_validators,
-        "balance": f"{balance / 10e8 :,.2f} ETH",
-        "balance_eur": f"{balance_eur :,.2f} EUR",
+        "balance": balance,
+        "balance_eur": balance_eur,
+        "rewards": rewards,
     }
     return total_eth_staking
+
+
+def fetch_staking_assets(account: str):
+    """
+    Fetch the staking assets of a user from the Ethereum blockchain and store them in the database.
+    This function uses the Ape library to interact with the Ethereum blockchain and fetch the balance of each token.
+    It also fetches the current price of each token using the fetch_historical_price function from Coingeko app
+    Args:
+        account (str): The public address of the account.
+    """
+    validators = get_validators_from_withdrawal(account.public_address)
+
+    if validators == []:
+        return
+    validator_details = get_validators_info(validators)
+    rewards = get_rewards(validators)
+    for validator in validator_details:
+        # Save the validator details to the database
+
+        validator_snapshot = SnapshotETHValidator(
+            account=account,
+            validator_index=validator.index,
+            public_key=validator.public_key,
+            balance=validator.balance,
+            status=validator.status,
+            activation_epoch=validator.activation_epoch,
+            rewards=rewards[str(validator.index)]["performance"],
+            snapshot_date=datetime.now(),
+        )
+        validator_snapshot.save()
 
 
 def get_validators_from_withdrawal(address: str) -> list[int]:
@@ -115,7 +176,7 @@ def get_validators_info(validator_indexs: list[str]) -> list[ValidatorDetails]:
         index = validator["validatorindex"]
         public_key = validator["pubkey"]
         withdrawal_credentials = validator["withdrawalcredentials"]
-        balance = validator["balance"]
+        balance = validator["balance"] / 1e9  # Convert Gwei to Decimal
         activation_epoch = validator["activationepoch"]
         status = validator["status"]
 
@@ -149,8 +210,8 @@ def get_rewards(validator_indexs: list[int]) -> list[Decimal]:
             # Initialize the rewards dictionary for the validator
             if index not in rewards:
                 rewards[index] = {}
-            rewards[index]["executionperformance"] = Decimal(
-                validator["performanceTotal"]
+            rewards[index]["executionperformance"] = (
+                validator["performanceTotal"] / 1e18
             )
 
     # Get the current consensus reward performance
@@ -159,9 +220,7 @@ def get_rewards(validator_indexs: list[int]) -> list[Decimal]:
     if data is not None:
         for validator in data["data"]:
             index = str(validator["validatorindex"])
-            rewards[index]["consensusperformance"] = Decimal(
-                validator["performancetotal"]
-            )
+            rewards[index]["consensusperformance"] = validator["performancetotal"] / 1e9
             rewards[index]["performance"] = (
                 rewards[index]["executionperformance"]
                 + rewards[index]["consensusperformance"]
