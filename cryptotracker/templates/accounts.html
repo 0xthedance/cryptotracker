@@ -10,26 +10,19 @@
             <thead>
                 <tr>
                     <th>Name</th>
-                    <th>Public Address</th>
-                    <th>wallet_type</th>
                     <th>Balance</th>
                 </tr>
             </thead>
             <tbody>
               {% for account in accounts_detail %}
                 <tr>
-                    <td><a href="{% url 'account_detail' account.account.public_address %}">
-                        {{ account.account.name}}
-                    </a>
-                    </td>
-                    <td>{{ account.account.public_address }}</td>
-                    <td>{{ account.account.wallet_type }}</td>
+                    <td>                        {{ account.account.name}}                    </td>
                     <td>{{ account.balance }} EUR</td>
                     <td>
-                        <a class="button is-small" href="{% url 'edit_account' account.account.public_address %}"> 
+                        <a class="button is-small" href="{% url 'edit_account' account.account.id %}"> 
                             <i class="fas fa-edit"></i>
                         </a>
-                        <a class="button is-small is-danger" href="{% url 'delete_account' account.account.public_address %}"> 
+                        <a class="button is-small is-danger" href="{% url 'delete_account' account.account.id %}"> 
                             <i class="fas fa-trash-alt"></i>
                         </a>
                 </tr>
@@ -37,7 +30,7 @@
             </tbody>
         </table>
         {% else %}
-        <p>This portfolio has no staking.</p>
+        <p>This portfolio has no accounts.</p>
         {% endif %}
 
 
@@ -46,28 +39,17 @@
                 <h3>Add an account for your portfolio</h3>
                 <form method="post">
                     {% csrf_token %}
-                    <div class="field">
-                        <label class="label">Public Address</label>
-                        <div class="control">
-                            {{ form1.public_address }}
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">Wallet Type</label>
-                        <div class="control">
-                            {{ form1.wallet_type }}
-                        </div>
-                    </div>
+
                     <div class="field">
                         <label class="label">Name</label>
                         <div class="control">
-                            {{ form1.name }}
+                            {{ form3.name }}
                         </div>
                     </div>
 
-                    
-                    
-                    <button class="button is-link" type="submit">Submit</button>
+                                     
+                    <button class="button is-link" type="submit">Save</button>
+                    <input type="hidden" name="next" value="{% url 'accounts' %}" />
                 </form>
             </div>
 

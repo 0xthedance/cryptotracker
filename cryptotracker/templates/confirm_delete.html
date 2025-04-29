@@ -2,12 +2,12 @@
 
 {% block content %}
 <div class="container">
-    <h1 class="title">Delete Account</h1>
-    <p>Are you sure you want to delete the account "{{ account.name }}"?</p>
+    <h1 class="title">Delete {{ object_type }}</h1>
+    <p>Are you sure you want to delete the {{ object_type|lower }}?</p>
     <form method="post">
         {% csrf_token %}
         <button type="submit" class="button is-danger">Delete</button>
-        <a class="button is-light" href="{% url 'accounts' %}">Cancel</a>
+        <a class="button is-light" href="{% url redirect_url %}">Cancel</a>
     </form>
 </div>
-{% endblock content%}
+{% endblock content %}

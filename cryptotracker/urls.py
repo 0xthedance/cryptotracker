@@ -1,26 +1,72 @@
 from django.urls import include, path
 
+from cryptotracker.models import Account, Address
+
+from cryptotracker.form import AddressForm, AccountForm
+
 from cryptotracker.views import (
-    account_detail,
-    accounts,
-    delete_account,
+    address_detail,
+    addresses,
+    delete_object,
     home,
     portfolio,
     sign_up,
     refresh,
     staking,
-    edit_account,
+    edit_object,
+    accounts,
+    waiting_page,
+    check_task_status,
+    rewards,
+    statistics,
 )
 
 urlpatterns = [
     path("", home, name="home"),
-    path("portfolio/", portfolio, name="portfolio"),
     path("accounts/", accounts, name="accounts"),
-    path("account/<str:public_address>/", account_detail, name="account_detail"),
-    path("accounts/", include("django.contrib.auth.urls")),
+    path("portfolio/", portfolio, name="portfolio"),
+    path("addresses/", addresses, name="addresses"),
+    path("address/<str:public_address>/", address_detail, name="address_detail"),
+    path("addresses/", include("django.contrib.auth.urls")),
     path("sign_up/", sign_up, name="sign_up"),
-    path("account/<str:public_address>/delete/", delete_account, name="delete_account"),
+    path(
+        "address/<str:id>/delete/",
+        delete_object,
+        {"model": Address, "redirect_url": "addresses", "object_type": "Address"},
+        name="delete_address",
+    ),
+    path(
+        "account/<str:id>/delete/",
+        delete_object,
+        {"model": Account, "redirect_url": "accounts", "object_type": "Account"},
+        name="delete_account",
+    ),
     path("refresh/", refresh, name="refresh"),
     path("staking/", staking, name="staking"),
-    path("account/<str:public_address>/edit/", edit_account, name="edit_account"),
+    path(
+        "address/<str:id>/edit/",
+        edit_object,
+        {
+            "model": Address,
+            "redirect_url": "addresses",
+            "form": AddressForm,
+            "object_type": "Address",
+        },
+        name="edit_address",
+    ),
+    path(
+        "account/<str:id>/edit/",
+        edit_object,
+        {
+            "model": Account,
+            "redirect_url": "accounts",
+            "form": AccountForm,
+            "object_type": "Account",
+        },
+        name="edit_account",
+    ),
+    path("waiting_page/", waiting_page, name="waiting_page"),
+    path("check_task_status/", check_task_status, name="check_task_status"),
+    path("rewards/", rewards, name="rewards"),
+    path("stadistics/", statistics, name="stadistics"),
 ]

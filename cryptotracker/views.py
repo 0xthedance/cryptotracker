@@ -1,12 +1,18 @@
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404
 from django.urls import reverse
+from django.contrib import messages
+from django.http import JsonResponse
+
 from web3 import Web3
 
-from cryptotracker.form import AccountForm, EditAccountForm
-from cryptotracker.models import Account, SnapshotDate, SnapshotETHValidator
+from celery import group
+from celery.result import GroupResult
+
+from cryptotracker.form import EditAddressForm, AddressForm, AccountForm
+from cryptotracker.models import SnapshotDate, SnapshotETHValidator, Address, Account
 from cryptotracker.staking import (
     get_aggregated_staking,
     get_rewards,
@@ -19,8 +25,12 @@ from cryptotracker.tokens import (
     fetch_aggregated_assets,
     fetch_assets,
 )
-from cryptotracker.tasks import update_assets_database, update_staking_assets
-from cryptotracker.utils import get_total_value
+from cryptotracker.tasks import (
+    update_assets_database,
+    update_staking_assets,
+    update_cryptocurrency_price,
+)
+from cryptotracker.utils import get_total_value, get_last_price
 
 
 # Create your views here.
@@ -32,7 +42,7 @@ def sign_up(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
-            return redirect(reverse("portafolio_home"))
+            return redirect(reverse("portfolio"))
     else:
         form = UserCreationForm()
     return render(request, "registration/sign_up.html", {"form": form})
@@ -44,9 +54,9 @@ def home(request):
 
 @login_required()
 def portfolio(request):
-    accounts = Account.objects.filter(user=request.user)
-    aggregated_assets = fetch_aggregated_assets(accounts)
-    total_eth_staking = get_aggregated_staking(accounts)
+    addresses = Address.objects.filter(user=request.user)
+    aggregated_assets = fetch_aggregated_assets(addresses)
+    total_eth_staking = get_aggregated_staking(addresses)
     portfolio_value = get_total_value(aggregated_assets, total_eth_staking)
 
     # Format the amounts for display
@@ -61,7 +71,7 @@ def portfolio(request):
         total_eth_staking["rewards"] = f"{total_eth_staking['rewards']:,.2f}"
 
     last_snapshot_date = (
-        SnapshotDate.objects.filter(account__in=accounts).order_by("-date").first()
+        SnapshotDate.objects.filter(address__in=addresses).order_by("-date").first()
     )
     if last_snapshot_date:
         last_snapshot_date = last_snapshot_date.date
@@ -71,7 +81,7 @@ def portfolio(request):
         "user": request.user,
         "assets": aggregated_assets,
         "total_eth_staking": total_eth_staking,
-        "accounts": accounts,
+        "addresses": addresses,
         "portfolio_value": f"{portfolio_value:,.2f}",
         "last_snapshot_date": last_snapshot_date,
     }
@@ -81,8 +91,8 @@ def portfolio(request):
 
 @login_required()
 def staking(request):
-    accounts = Account.objects.filter(user=request.user)
-    validators = get_last_validators(accounts)
+    addresses = Address.objects.filter(user=request.user)
+    validators = get_last_validators(addresses)
 
     context = {
         "validators": validators,
@@ -97,8 +107,10 @@ def accounts(request):
 
     for account in accounts:
         accounts = [account]
-        aggregated_assets = fetch_aggregated_assets(accounts)
-        total_eth_staking = get_aggregated_staking(accounts)
+        addresses = Address.objects.filter(account=account)
+
+        aggregated_assets = fetch_aggregated_assets(addresses)
+        total_eth_staking = get_aggregated_staking(addresses)
         account_value = get_total_value(aggregated_assets, total_eth_staking)
         account_detail = {
             "account": account,
@@ -110,31 +122,91 @@ def accounts(request):
     if request.method == "POST":
         form = AccountForm(request.POST)
         if form.is_valid():
-            public_address = form.clean_public_address()
-            if Web3.is_checksum_address(public_address) is False:
-                public_address = Web3.to_checksum_address(public_address)
-
+            account_name = form.clean_name()
             account = Account(
                 user=request.user,
-                public_address=public_address,
-                wallet_type=form.cleaned_data["wallet_type"],
-                name=form.cleaned_data["name"],
+                name=account_name,
             )
             account.save()
+            return redirect("accounts")
 
     context = {
         "accounts_detail": accounts_detail,
-        "form1": AccountForm(),
+        "form3": AccountForm(),
     }
     return render(request, "accounts.html", context)
 
 
+@login_required
+def delete_object(request, model, id, redirect_url, object_type):
+    """
+    Generic view to delete an object.
+    Args:
+        model: The model class of the object to delete.
+        object_id: The primary key or unique identifier of the object.
+        redirect_url: The URL name to redirect to after deletion.
+        object_type: A string representing the type of object (e.g., "Account", "Address").
+    """
+    obj = get_object_or_404(model, pk=id)
+
+    if request.method == "POST":
+        obj.delete()
+        return redirect(redirect_url)
+
+    # Render the confirmation page
+    context = {
+        "object_type": object_type,
+        "redirect_url": redirect_url,
+    }
+    return render(request, "confirm_delete.html", context)
+
+
 @login_required()
-def account_detail(request, public_address):
-    account = Account.objects.get(public_address=public_address)
-    accounts = [account]
-    aggregated_assets = fetch_aggregated_assets(accounts)
-    total_eth_staking = get_aggregated_staking(accounts)
+def addresses(request):
+    addresses_detail = []
+    addresses = Address.objects.filter(user=request.user)
+    for address in addresses:
+        addresses = [address]
+        aggregated_assets = fetch_aggregated_assets(addresses)
+        total_eth_staking = get_aggregated_staking(addresses)
+        address_value = get_total_value(aggregated_assets, total_eth_staking)
+        address_detail = {
+            "address": address,
+            "balance": f"{address_value:,.2f}",
+        }
+        addresses_detail.append(address_detail)
+    print(addresses_detail)
+
+    if request.method == "POST":
+        form = AddressForm(request.POST)
+        if form.is_valid():
+            public_address = form.clean_public_address()
+            if Web3.is_checksum_address(public_address) is False:
+                public_address = Web3.to_checksum_address(public_address)
+
+            address = Address(
+                user=request.user,
+                public_address=public_address,
+                wallet_type=form.cleaned_data["wallet_type"],
+                name=form.cleaned_data["name"],
+                account=form.cleaned_data["account"],
+            )
+            address.save()
+            return redirect("addresses")
+
+    context = {
+        "addresses_detail": addresses_detail,
+        "form1": AddressForm(),
+    }
+    return render(request, "addresses.html", context)
+
+
+@login_required()
+def address_detail(request, public_address):
+    address = Address.objects.get(public_address=public_address)
+    addresses = [address]
+    aggregated_assets = fetch_aggregated_assets(addresses)
+    total_eth_staking = get_aggregated_staking(addresses)
     portfolio_value = get_total_value(aggregated_assets, total_eth_staking)
 
     # Format the amounts for display
@@ -149,7 +221,7 @@ def account_detail(request, public_address):
         total_eth_staking["rewards"] = f"{total_eth_staking['rewards']:,.2f}"
 
     last_snapshot_date = (
-        SnapshotDate.objects.filter(account__in=accounts).order_by("-date").first()
+        SnapshotDate.objects.filter(address__in=addresses).order_by("-date").first()
     )
     if last_snapshot_date:
         last_snapshot_date = last_snapshot_date.date
@@ -159,44 +231,69 @@ def account_detail(request, public_address):
         "user": request.user,
         "assets": aggregated_assets,
         "total_eth_staking": total_eth_staking,
-        "accounts": accounts,
+        "addresses": addresses,
         "portfolio_value": f"{portfolio_value:,.2f}",
         "last_snapshot_date": last_snapshot_date,
-        "account": account,
+        "address": address,
     }
-    return render(request, "account_detail.html", context)
+    return render(request, "address_detail.html", context)
 
 
 @login_required()
-def delete_account(request, public_address):
-    account = Account.objects.get(public_address=public_address)
+def rewards(request):
+    """
+    Show rewards for the portafolio, include staking rewards and protocol rewards.
+    """
 
-    if request.method == "POST":
-        account.delete()
-        return redirect(reverse("accounts"))
+    addresses = Address.objects.filter(user=request.user)
 
-    # Render a confirmation page for GET requests
-    return render(request, "confirm_delete.html", {"account": account})
+    # Get ETH Staking rewards
+    eth_rewards = 0
+    validators = get_last_validators(addresses)
+    for validator in validators:
+        current_price = get_last_price(
+            "ethereum", snapshot_date=validator.snapshot_date.date()
+        )
+        eth_rewards += validator.rewards * current_price
+
+    # Get protocol rewards
+
+    rewards = {
+        "ETH": f"{eth_rewards:,.2f}",
+    }
+
+    total_rewards = eth_rewards
+    context = {
+        "rewards": rewards,
+        "total_rewards": f"{total_rewards:,.2f}",
+    }
+    return render(request, "rewards.html", context)
 
 
 @login_required()
-def edit_account(request, public_address):
-    account = Account.objects.get(public_address=public_address)
-    print(account)
+def edit_object(request, model, object_id, form, redirect_url):
+    """
+    Generic view to edit an object.
+    Args:
+        model: The model class of the object to edit.
+        object_id: The primary key or unique identifier of the object.
+        form: The form class for editing the object.
+        redirect_url: The URL name to redirect to after editing.
+    """
+    obj = get_object_or_404(model, pk=object_id)
+
     if request.method == "POST":
-        print(request.POST)
-        form = EditAccountForm(request.POST, instance=account)
+        form = form(request.POST, instance=obj)
         if form.is_valid():
             form.save()
-            return redirect("accounts")
-    else:
-        form = EditAccountForm(instance=account)
+            return redirect(redirect_url)
 
+    # Render the edit page
     context = {
-        "form2": form,
-        "account": account,
+        "form2": form(instance=obj),
+        "object": obj,
     }
-    return render(request, "edit_account.html", context)
+    return render(request, "edit_object.html", context)
 
 
 def logout_view(request):
@@ -206,10 +303,115 @@ def logout_view(request):
 @login_required()
 def refresh(request):
     """
-    accounts = Account.objects.filter(user=request.user)
-    for account in accounts:
+
     # Trigger the task asynchronously
     """
-    update_assets_database.delay()
-    update_staking_assets.delay()
-    return redirect(reverse("portfolio"))
+    task_group = group(
+        update_cryptocurrency_price.s(),
+        update_assets_database.s(),
+        update_staking_assets.s(),
+    )
+
+    # Execute the task group asynchronously
+    task_group_result = task_group.apply_async()
+    print(f"Task group ID: {task_group_result.id}")
+
+    request.session["task_group_id"] = task_group_result.id
+
+    task_group_result.save()
+
+    return redirect(reverse("waiting_page"))
+
+
+@login_required()
+def waiting_page(request):
+    """
+    Render the waiting page and check task status.
+    """
+    task_group_id = request.session.get("task_group_id")
+    print(f"Task group ID: {task_group_id}")
+    if not task_group_id:
+        return redirect(reverse("portfolio"))
+
+    # Render the waiting page
+    return render(request, "waiting_page.html", {"task_group_id": task_group_id})
+
+
+@login_required()
+def check_task_status(request):
+    """
+    Check the status of the task group and return a JSON response.
+    """
+    task_group_id = request.session.get("task_group_id")
+    if not task_group_id:
+        return JsonResponse({"status": "complete"})
+
+    print(f"Checking task group ID: {task_group_id}")
+
+    task_group_result = GroupResult.restore(task_group_id)
+
+    print(task_group_result)
+
+    if task_group_result and task_group_result.ready():
+        # All tasks are complete
+        return JsonResponse({"status": "complete"})
+
+    # Tasks are still running
+    return JsonResponse({"status": "pending"})
+
+
+@login_required()
+def statistics(request):
+    """
+    Show some statistics of the portfolio.
+    """
+    addresses = Address.objects.filter(user=request.user)
+
+    # Amount (EUR) per Wallet type
+    hot_wallets = addresses.filter(wallet_type="HOT")
+    hot_wallets_value = sum(
+        get_total_value(
+            fetch_aggregated_assets([wallet]), get_aggregated_staking([wallet])
+        )
+        for wallet in hot_wallets
+    )
+
+    cold_wallets = addresses.filter(wallet_type="COLD")
+    cold_wallets_value = sum(
+        get_total_value(
+            fetch_aggregated_assets([wallet]), get_aggregated_staking([wallet])
+        )
+        for wallet in cold_wallets
+    )
+
+    smart_wallets = addresses.filter(wallet_type="SMART")
+    smart_wallets_value = sum(
+        get_total_value(
+            fetch_aggregated_assets([wallet]), get_aggregated_staking([wallet])
+        )
+        for wallet in smart_wallets
+    )
+
+    # Amount (EUR) per account
+    accounts_detail = []
+    accounts = Account.objects.filter(user=request.user)
+    for account in accounts:
+        addresses = Address.objects.filter(account=account)
+        aggregated_assets = fetch_aggregated_assets(addresses)
+        total_eth_staking = get_aggregated_staking(addresses)
+        account_value = get_total_value(aggregated_assets, total_eth_staking)
+        accounts_detail.append(
+            {
+                "account": account,
+                "balance": account_value,
+            }
+        )
+
+    context = {
+        "hot_wallets_value": hot_wallets_value,
+        "cold_wallets_value": cold_wallets_value,
+        "smart_wallets_value": smart_wallets_value,
+        "accounts_detail": accounts_detail,
+    }
+
+    return render(request, "statistics.html", context)

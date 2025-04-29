@@ -3,7 +3,7 @@ from datetime import datetime
 from celery.exceptions import TimeoutError
 from cryptotracker.tokens import fetch_assets
 from cryptotracker.models import (
-    Account,
+    Address,
     SnapshotDate,
     Cryptocurrency,
     CryptocurrencyPrice,
@@ -30,6 +30,7 @@ def update_cryptocurrency_price():
         )
         crypto_price.save()
         print(f"Price of {crypto} updated to {prices[crypto]['eur']} EUR")
+    return "Cryptocurrency prices updated successfully!"
 
 
 @shared_task
@@ -40,10 +41,10 @@ def update_assets_database():
     It also fetches the current price of each token using the fetch_historical_price function from Coingeko app
     """
 
-    accounts = Account.objects.all()
-    for account in accounts:
+    addresses = Address.objects.all()
+    for address in addresses:
         try:
-            fetch_assets(account)
+            fetch_assets(address)
         except TimeoutError:
             print("TimeoutError: Retrying...")
             continue
@@ -52,8 +53,9 @@ def update_assets_database():
             continue
         SnapshotDate.objects.create(
             date=datetime.now(),
-            account=account,
+            address=address,
         )
+    return "Assets updated successfully!"
 
 
 @shared_task
@@ -64,13 +66,14 @@ def update_staking_assets():
     It also fetches the current price of each token using the fetch_historical_price function from Coingeko app
     """
 
-    accounts = Account.objects.all()
-    for account in accounts:
+    addresses = Address.objects.all()
+    for address in addresses:
         try:
-            fetch_staking_assets(account)
+            fetch_staking_assets(address)
         except TimeoutError:
             print("TimeoutError: Retrying...")
             continue
         except Exception as e:
             print(f"An error occurred: {e}")
             continue
+    return "Staking assets updated successfully!"

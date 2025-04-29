@@ -54,12 +54,20 @@
  {% if request.user.is_authenticated %}
  <div class="tabs is-boxed mt-6 is-centered">
    <ul>
-     <!-- Accounts Tab -->
-     <li class="{% if request.resolver_match.url_name == 'accounts' %}is-active{% endif %}">
-       <a href="{% url 'accounts' %}">
-         <span>Accounts</span>
-       </a>
-     </li>
+    <!-- Accounts Tab -->
+    <li class="{% if request.resolver_match.url_name == 'accounts' %}is-active{% endif %}">
+      <a href="{% url 'accounts' %}">
+        <span>Accounts</span>
+      </a>
+    </li>
+
+
+    <!-- Address Tab -->
+    <li class="{% if request.resolver_match.url_name == 'addresses' %}is-active{% endif %}">
+      <a href="{% url 'addresses' %}">
+        <span>Addresses</span>
+      </a>
+    </li>
  
      <!-- Portfolio Tab -->
      <li class="{% if request.resolver_match.url_name == 'portfolio' %}is-active{% endif %}">
@@ -74,9 +82,31 @@
          <span>Staking</span>
        </a>
      </li>
+    <!-- Rewards Tab -->
+    <li class="{% if request.resolver_match.url_name == 'rewards' %}is-active{% endif %}">
+      <a href="{% url 'rewards' %}">
+        <span>Rewards</span>
+      </a>
+    </li>
+    <!-- Stadistics Tab -->
+    <li class="{% if request.resolver_match.url_name == 'stadistics' %}is-active{% endif %}">
+      <a href="{% url 'stadistics' %}">
+        <span>Stadistics</span>
+      </a>
+    </li>
    </ul>
  </div>
  {% endif %}
+
+ {% if messages %}
+<div class="container mt-4">
+    {% for message in messages %}
+    <div class="notification is-{{ message.tags }}">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 
 {% block content %}
 {% endblock content %}

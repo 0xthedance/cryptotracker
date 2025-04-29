@@ -21,6 +21,14 @@ class CryptocurrencyPrice(models.Model):
 
 
 class Account(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=20)
+
+    def __str__(self):
+        return f"{self.name}"
+
+
+class Address(models.Model):
     COLD = "COLD"
     HOT = "HOT"
     SMART = "SMART"
@@ -32,6 +40,7 @@ class Account(models.Model):
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     public_address = models.CharField(max_length=42, unique=True)
+    account = models.ForeignKey("Account", on_delete=models.CASCADE)
     wallet_type = models.CharField(
         max_length=20, choices=WALLET_TYPE_CHOICES, default=HOT
     )
@@ -43,7 +52,7 @@ class Account(models.Model):
 
 class SnapshotAssets(models.Model):
     cryptocurrency = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)
-    account = models.ForeignKey("Account", on_delete=models.CASCADE)
+    address = models.ForeignKey("Address", on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=20, decimal_places=5)
     snapshot_date = models.DateTimeField()
 
@@ -52,7 +61,7 @@ class SnapshotAssets(models.Model):
 
 
 class SnapshotETHValidator(models.Model):
-    account = models.ForeignKey("Account", on_delete=models.CASCADE)
+    address = models.ForeignKey("Address", on_delete=models.CASCADE)
     validator_index = models.IntegerField()
     public_key = models.CharField(max_length=128)
     balance = models.DecimalField(max_digits=20, decimal_places=5)
@@ -67,7 +76,7 @@ class SnapshotETHValidator(models.Model):
 
 class SnapshotDate(models.Model):
     date = models.DateTimeField()
-    account = models.ForeignKey("Account", on_delete=models.CASCADE)
+    address = models.ForeignKey("Address", on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.date} - {self.account}"
+        return f"{self.date} - {self.address}"

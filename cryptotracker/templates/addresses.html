@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container">
+   
+
+        {% if addresses_detail %}
+        <table class="table is-fullwidth is-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Account</th>
+                    <th>Public Address</th>
+                    <th>Wallet_type</th>
+                    <th>Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+              {% for address in addresses_detail %}
+                <tr>
+                    <td><a href="{% url 'address_detail' address.address.public_address %}">
+                        {{ address.address.name}}
+                    </a>
+                    </td>
+                    <td>{{ address.address.account}}</td>
+                    <td>
+                        {{ address.address.public_address }}  
+                        <button class="button is-small is-light" onclick="copyToClipboard('{{ address.address.public_address }}')">
+                            <span class="icon">
+                                <i class="fas fa-copy"></i>
+                            </span>
+                        </button>
+                    </td>
+                    <td>{{ address.address.wallet_type }}</td>
+                    <td>{{ address.balance }} EUR</td>
+                    <td>
+                        <a class="button is-small" href="{% url 'edit_address' address.address.id %}"> 
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a class="button is-small is-danger" href="{% url 'delete_address' address.address.id %}"> 
+                            <i class="fas fa-trash-alt"></i>
+                        </a>
+                </tr>
+              {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>This portfolio has no staking.</p>
+        {% endif %}
+
+
+    
+            <div class="content mt-6">
+                <h3>Add an address for your portfolio</h3>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="field">
+                        <label class="label">Public Address</label>
+                        <div class="control">
+                            {{ form1.public_address }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">Wallet Type</label>
+                        <div class="control">
+                            {{ form1.wallet_type }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">Name</label>
+                        <div class="control">
+                            {{ form1.name }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">Account</label>
+                        <div class="control">
+                            {{ form1.account }}
+                        </div>
+                    </div>
+
+                    
+                    
+                    <button class="button is-link" type="submit">Submit</button>
+                </form>
+            </div>
+
+            
+</div>
+
+<script>
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Public address copied to clipboard!');
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+        });
+    }
+</script>
+
+{% endblock content %}

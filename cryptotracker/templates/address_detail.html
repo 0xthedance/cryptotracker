@@ -1,0 +1,22 @@
+{% extends "holdings.html" %}
+{% block content %}
+  
+<div class="container">
+    <h1 class="title mt-6">Address Detail</h1>
+    <p><strong>{{ address.public_address }}</strong></p>
+
+</div>
+
+  {{block.super}}
+  <div class="container">
+
+  <div class="buttons">
+    <a class="button is-primary mt-6" href="{% url "addresses" %}"> <strong>Back to addresses List</strong>
+    </a>
+
+  </div>
+
+    </div>
+</section>
+</div>
+{% endblock %}

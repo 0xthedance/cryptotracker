@@ -34,16 +34,16 @@ class ValidatorDetails:
         return f"ValidatorDetails(index={self.index}, public_key={self.public_key}, withdrawal_credentials={self.withdrawal_credentials}, balance={self.balance}, status={self.status}, activation_epoch={self.activation_epoch})"
 
 
-def get_last_validators(accounts: list) -> list[SnapshotETHValidator]:
+def get_last_validators(addresses: list) -> list[SnapshotETHValidator]:
     """
-    Get the last staking assets for a list of accounts.
+    Get the last staking assets for a list of addresses.
     Args:
-        accounts (list): A list of Account objects.
+        addresses (list): A list of Address objects.
     Returns:
         list: A list of SnapshotETHValidator objects.
     """
     last_validators = []
-    validators = SnapshotETHValidator.objects.filter(account__in=accounts)
+    validators = SnapshotETHValidator.objects.filter(address__in=addresses)
     if not validators:
         return None
 
@@ -62,11 +62,11 @@ def get_last_validators(accounts: list) -> list[SnapshotETHValidator]:
     return last_validators
 
 
-def get_aggregated_staking(accounts: list) -> dict:
+def get_aggregated_staking(addresses: list) -> dict:
     """
-    Get the aggregated staking information for a list of accounts.
+    Get the aggregated staking information for a list of addresses.
     Args:
-        accounts (list): A list of Account objects.
+        addresses (list): A list of Address objects.
     Returns:
         dict: A dictionary containing the aggregated staking information.
     """
@@ -74,7 +74,7 @@ def get_aggregated_staking(accounts: list) -> dict:
     num_validators = int(0)
     balance = int(0)
     rewards = int(0)
-    last_validators = get_last_validators(accounts)
+    last_validators = get_last_validators(addresses)
     if last_validators is None:
         return None
     num_validators = len(last_validators)
@@ -92,15 +92,15 @@ def get_aggregated_staking(accounts: list) -> dict:
     return total_eth_staking
 
 
-def fetch_staking_assets(account: str):
+def fetch_staking_assets(address: str):
     """
     Fetch the staking assets of a user from the Ethereum blockchain and store them in the database.
     This function uses the Ape library to interact with the Ethereum blockchain and fetch the balance of each token.
     It also fetches the current price of each token using the fetch_historical_price function from Coingeko app
     Args:
-        account (str): The public address of the account.
+        address (str): The public address of the address.
     """
-    validators = get_validators_from_withdrawal(account.public_address)
+    validators = get_validators_from_withdrawal(address.public_address)
 
     if validators == []:
         return
@@ -110,7 +110,7 @@ def fetch_staking_assets(account: str):
         # Save the validator details to the database
 
         validator_snapshot = SnapshotETHValidator(
-            account=account,
+            address=address,
             validator_index=validator.index,
             public_key=validator.public_key,
             balance=validator.balance,

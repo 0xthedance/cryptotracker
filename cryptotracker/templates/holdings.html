@@ -6,17 +6,18 @@
 
 <section class="section">
     <div class="container">
+        <div class="title has-text-right has-text-weight-bold">
+            <p>Total value: {{ portfolio_value }} €</p>
+        </div>
         <div class="subtitle is-size-7 has-text-right">
             <p>Last updated: {{ last_snapshot_date }}</p>
         <a class="button is-small is-light mt-3 has-text-right" href="{% url 'refresh'%}">
             Refresh
         </a>
     </div>
+
         <h1 class="title">Assets</h1>
         {% if assets %}
-        <div class="subtitle has-text-right has-text-weight-bold">
-            <p>Total value: {{ portfolio_value }} €</p>
-        </div>
         <table class="table is-fullwidth is-striped">
             <thead>
                 <tr>
@@ -46,7 +47,7 @@
     </div>
 </div>
 <div class="container">
-    <h1 class="title my-6">Staking</h1>
+    <h1 class="title my-6"> ETH Staking</h1>
     {% if total_eth_staking %}
     <table class="table is-fullwidth is-striped">
         <thead>

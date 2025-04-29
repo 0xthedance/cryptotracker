@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container">
+    <h1 class="title mt-6">Total rewards: {{ total_rewards }} EUR</h1>
+
+  {% if rewards %}
+  <table class="table is-fullwidth is-striped">
+      <thead>
+          <tr>
+              <th>Protocol</th>
+              <th>Rewards</th>
+
+          </tr>
+      </thead>
+      <tbody>
+          <tr>
+              <td>ETH staked</td>
+                <td>{{ rewards.ETH }} EUR</td>
+          </tr>
+      </tbody>
+  </table>
+  {% else %}
+  <p>This portfolio has no rewards.</p>
+  {% endif %}
+
+</div>
+{% endblock content %}

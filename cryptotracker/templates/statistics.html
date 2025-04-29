@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="title">Portfolio Wallet Distribution</h2>
+    <canvas id="walletChart" width="150" height="150"></canvas>
+
+    <h2 class="title mt-6">Portfolio Account Distribution</h2>
+    <canvas id="accountChart" width="150" height="150"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Pie chart for wallet distribution
+    const walletCtx = document.getElementById('walletChart').getContext('2d');
+    const walletChart = new Chart(walletCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Hot Wallets', 'Cold Wallets', 'Smart Wallets'],
+            datasets: [{
+                label: 'Wallet Distribution',
+                data: [{{ hot_wallets_value|floatformat:2 }}, {{ cold_wallets_value|floatformat:2 }}, {{ smart_wallets_value|floatformat:2 }}],
+                backgroundColor: ['#ff6384', '#36a2eb', '#cc65fe'],
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(tooltipItem) {
+                            return tooltipItem.label + ': ' + tooltipItem.raw.toLocaleString() + ' EUR';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Pie chart for account distribution
+    const accountCtx = document.getElementById('accountChart').getContext('2d');
+    const accountChart = new Chart(accountCtx, {
+        type: 'pie',
+        data: {
+            labels: [{% for account in accounts_detail %}'{{ account.account.name }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+            datasets: [{
+                label: 'Account Distribution',
+                data: [{% for account in accounts_detail %}{{ account.balance|floatformat:2 }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                backgroundColor: ['#ff9f40', '#4bc0c0', '#9966ff', '#ffcd56', '#36a2eb'], // Add more colors if needed
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(tooltipItem) {
+                            return tooltipItem.label + ': ' + tooltipItem.raw.toLocaleString() + ' EUR';
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock content %}

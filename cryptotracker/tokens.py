@@ -4,52 +4,14 @@ from ape import Contract, networks
 from cryptotracker.utils import get_last_price
 from cryptotracker.models import (
     Account,
+    Address,
     SnapshotAssets,
     Cryptocurrency,
     CryptocurrencyPrice,
 )
 
-TOKENS = [
-    {
-        "name": "ethereum",
-        "symbol": "ETH",
-        "image": "cryptotracker/logos/ethereum.png",
-        "address": "0x",
-    },
-    {
-        "name": "liquity",
-        "symbol": "LQTY",
-        "image": "cryptotracker/logos/liquity.png",
-        "address": "0x6DEA81C8171D0bA574754EF6F8b412F2Ed88c54D",
-    },
-    {
-        "name": "ssv-network",
-        "symbol": "SSV",
-        "image": "cryptotracker/logos/ssv.png",
-        "address": "0x9D65fF81a3c488d585bBfb0Bfe3c7707c7917f54",
-    },
-    {
-        "name": "balancer",
-        "symbol": "BAL",
-        "image": "cryptotracker/logos/bal.png",
-        "address": "0xba100000625a3754423978a60c9317c58a424e3d",
-    },
-    {
-        "name": "liquity-usd",
-        "symbol": "LUSD",
-        "image": "cryptotracker/logos/lusd.png",
-        "address": "0x5f98805a4e8be255a32880fdec7f6728c6568ba0",
-    },
-    {
-        "name": "safe",
-        "symbol": "SAFE",
-        "image": "cryptotracker/logos/safe.png",
-        "address": "0x5afe3855358e112b5647b952709e6165e1c1eeee",
-    },
-]
 
-
-def fetch_assets(account: Account) -> None:
+def fetch_assets(address: Address) -> None:
     """
     Fetches the assets of a user from the Ethereum blockchain and stores them in the database.
     This function uses the Ape library to interact with the Ethereum blockchain and fetch the balance of each token.
@@ -57,7 +19,7 @@ def fetch_assets(account: Account) -> None:
 
     """
     with networks.parse_network_choice("ethereum:mainnet:alchemy") as provider:
-        public_address = account.public_address
+        public_address = address.public_address
         # Fetch tokens balance
         for token in Cryptocurrency.objects.all():
             if token.name == "ethereum":
@@ -70,14 +32,14 @@ def fetch_assets(account: Account) -> None:
 
                 asset_snapshot = SnapshotAssets(
                     cryptocurrency=token,
-                    account=account,
+                    address=address,
                     quantity=token_asset / 1e18,
                     snapshot_date=datetime.now(),
                 )
                 asset_snapshot.save()
 
 
-def fetch_aggregated_assets(accounts: list) -> dict:
+def fetch_aggregated_assets(addresses: list) -> dict:
     """
     Fetches the aggregated assets of a list of accounts.
     Args:
@@ -88,8 +50,8 @@ def fetch_aggregated_assets(accounts: list) -> dict:
 
     aggregated_assets = {}
 
-    for account in accounts:
-        assets_list = SnapshotAssets.objects.filter(account=account)
+    for address in addresses:
+        assets_list = SnapshotAssets.objects.filter(address=address)
         if not assets_list:
             continue
 

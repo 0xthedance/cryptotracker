@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="title">Updating Data</h1>
+    <p>Please wait while we update your data. This may take a few moments.</p>
+    <div class="progress">
+        <progress class="progress is-primary" max="100">Loading...</progress>
+    </div>
+</div>
+
+<script>
+    function checkTaskStatus() {
+        fetch("{% url 'check_task_status' %}")
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "complete") {
+                    // Redirect to the portfolio page when tasks are complete
+                    window.location.href = "{% url 'portfolio' %}";
+                } else {
+                    // Keep checking if tasks are still pending
+                    setTimeout(checkTaskStatus, 2000);
+                }
+            });
+    }
+
+    // Start checking the task status
+    checkTaskStatus();
+</script>
+{% endblock %}
