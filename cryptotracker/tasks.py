@@ -40,10 +40,11 @@ def update_assets_database():
     This function uses the Ape library to interact with the Ethereum blockchain and fetch the balance of each token.
     It also fetches the current price of each token using the fetch_historical_price function from Coingeko app
     """
-
+    print("Updating assets database...")
     addresses = Address.objects.all()
     for address in addresses:
         try:
+            print(f"Fetching assets for address: {address.public_address}")
             fetch_assets(address)
         except TimeoutError:
             print("TimeoutError: Retrying...")
