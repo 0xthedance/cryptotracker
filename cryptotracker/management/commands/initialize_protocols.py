@@ -54,7 +54,7 @@ PROTOCOLS = [
         "Arbitrum": [
             {
                 "name": "lending_pool",
-                "address": "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb"
+                "address": "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
                 "image": "cryptotracker/logos/aave.png",
             },
         ],
@@ -99,51 +99,37 @@ class Command(BaseCommand):
     help = "Initialize the Liquity protocol and LUSD pool"
 
     def handle(self, *args, **options):
-        # Initialize the Networks model
-        for network in NETWORKS:
-            obj, created = Network.objects.get_or_create(
-                name=network["name"],
-            )
-            if created:
-                self.stdout.write(
-                    self.style.SUCCESS(f"Added {network['name']} to the database.")
-                )
-            else:
-                self.stdout.write(
-                    self.style.WARNING(f"{network['name']} already exists in the database.")
-                )
+        
         # Initialize the Protocols model
+        networks = Network.objects.all()
         for protocol in PROTOCOLS:
-            network = Network.objects.get(name=protocol["network"])
-            obj, created = Protocol.objects.get_or_create(
-                name=protocol["name"],
-                network=network,
-            )
-            if created:
-                self.stdout.write(
-                    self.style.SUCCESS(f"Added {protocol['name']} to the database.")
+            for network in networks:
+                if network.name not in protocol:
+                    continue
+                protocol_obj, created = Protocol.objects.get_or_create(
+                    name=protocol["name"],
+                    network=network,
                 )
-            else:
-                self.stdout.write(
-                    self.style.WARNING(f"{protocol['name']} already exists in the database.")
-                )
-        # Initialize the Pool model
-        for pool in POOL:
-            network = Network.objects.get(name=pool["network"])
-            protocol = Protocol.objects.get(name=pool["protocol"], network=network)
-            obj, created = Pool.objects.get_or_create(
-                name=pool["name"],
-                protocol=protocol,
-                network=network,
-                address=pool["address"],
-                image=pool["image"],
-            )
-            if created:
-                self.stdout.write(
-                    self.style.SUCCESS(f"Added {pool['name']} to the database.")
-                )
-            else:
-                self.stdout.write(
-                    self.style.WARNING(f"{pool['name']} already exists in the database.")
-                )
-        self.stdout.write(self.style.SUCCESS("All protocols and pools initialized."))
+                if created:
+                    self.stdout.write(
+                        self.style.SUCCESS(f"Added {protocol['name']} to the database.")
+                    )
+                else:
+                    self.stdout.write(
+                        self.style.WARNING(f"{protocol['name']} already exists in the database.")
+                    )
+                for pool in protocol[network.name]:
+                    pool_obj, created = Pool.objects.get_or_create(
+                        name=pool["name"],
+                        protocol=protocol_obj,
+                        address=pool["address"],
+                        image=pool["image"],
+                    )
+                    if created:
+                        self.stdout.write(
+                            self.style.SUCCESS(f"Added {pool['name']} to the database.")
+                        )
+                    else:
+                        self.stdout.write(
+                            self.style.WARNING(f"{pool['name']} already exists in the database.")
+                        )

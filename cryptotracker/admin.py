@@ -1,5 +1,12 @@
 from django.contrib import admin
-from cryptotracker.models import Cryptocurrency, CryptocurrencyPrice, Account, Network, Pool, Protocol
+from cryptotracker.models import (
+    Cryptocurrency,
+    CryptocurrencyPrice,
+    Account,
+    Network,
+    Pool,
+    Protocol,
+)
 
 
 # Register your models here.
@@ -18,11 +25,14 @@ class AccountAdmin(admin.ModelAdmin):
 class NetworkAdmin(admin.ModelAdmin):
     pass
 
+
 class PoolAdmin(admin.ModelAdmin):
     pass
 
+
 class ProtocolAdmin(admin.ModelAdmin):
     pass
+
 
 admin.site.register(Cryptocurrency, CryptocurrencyAdmin)
 admin.site.register(CryptocurrencyPrice, CryptocurrencyPriceAdmin)

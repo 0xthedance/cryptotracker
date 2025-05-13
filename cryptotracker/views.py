@@ -58,6 +58,7 @@ def portfolio(request):
     aggregated_assets = fetch_aggregated_assets(addresses)
     total_eth_staking = get_aggregated_staking(addresses)
     portfolio_value = get_total_value(aggregated_assets, total_eth_staking)
+    total_protocols = None
 
     # Format the amounts for display
     if aggregated_assets:
@@ -81,6 +82,7 @@ def portfolio(request):
         "user": request.user,
         "assets": aggregated_assets,
         "total_eth_staking": total_eth_staking,
+        "total_protocols": total_protocols,
         "addresses": addresses,
         "portfolio_value": f"{portfolio_value:,.2f}",
         "last_snapshot_date": last_snapshot_date,

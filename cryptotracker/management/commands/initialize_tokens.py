@@ -84,10 +84,10 @@ TOKENS = [
             "Arbitrum": "0x912ce59144191c1204e64559fe8253a0e49e6548",
             "Gnosis Chain": None,
             "Base": None,
-        }
+        },
     },
-
 ]
+
 
 class Command(BaseCommand):
     help = "Initialize the database with tokens"
@@ -103,11 +103,15 @@ class Command(BaseCommand):
             )
             if created_crypto:
                 self.stdout.write(
-                    self.style.SUCCESS(f"Added cryptocurrency {token['name']} to the database.")
+                    self.style.SUCCESS(
+                        f"Added cryptocurrency {token['name']} to the database."
+                    )
                 )
             else:
                 self.stdout.write(
-                    self.style.WARNING(f"Cryptocurrency {token['name']} already exists.")
+                    self.style.WARNING(
+                        f"Cryptocurrency {token['name']} already exists."
+                    )
                 )
 
             # Iterate through the networks and addresses
@@ -119,10 +123,12 @@ class Command(BaseCommand):
                 network = Network.objects.get(name=network_name)
 
                 # Create or get the CryptocurrencyNetwork
-                crypto_network, created_network = CryptocurrencyNetwork.objects.get_or_create(
-                    cryptocurrency=cryptocurrency,
-                    network=network,
-                    address=address,
+                crypto_network, created_network = (
+                    CryptocurrencyNetwork.objects.get_or_create(
+                        cryptocurrency=cryptocurrency,
+                        network=network,
+                        address=address,
+                    )
                 )
                 if created_network:
                     self.stdout.write(

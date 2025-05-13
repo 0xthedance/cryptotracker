@@ -58,7 +58,7 @@ def fetch_aggregated_assets(addresses: list) -> dict:
             continue
 
         for network in Network.objects.all():
-            tokens =CryptocurrencyNetwork.objects.filter(network=network)
+            tokens = CryptocurrencyNetwork.objects.filter(network=network)
             network_assets = assets_list.filter(cryptocurrency__network=network)
             if not network_assets:
                 continue
@@ -91,7 +91,12 @@ def fetch_aggregated_assets(addresses: list) -> dict:
                         "image": asset.cryptocurrency.cryptocurrency.image,
                         "last_snapshot_date": asset.snapshot_date,
                     }
-                aggregated_assets[asset.cryptocurrency.cryptocurrency.symbol]["amount_eur"] = (
-                    aggregated_assets[asset.cryptocurrency.cryptocurrency.symbol]["amount"] * current_price
+                aggregated_assets[asset.cryptocurrency.cryptocurrency.symbol][
+                    "amount_eur"
+                ] = (
+                    aggregated_assets[asset.cryptocurrency.cryptocurrency.symbol][
+                        "amount"
+                    ]
+                    * current_price
                 )
     return aggregated_assets

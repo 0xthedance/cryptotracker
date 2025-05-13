@@ -11,7 +11,7 @@ app.conf.beat_schedule = {
         "task": "cryptotracker.tasks.update_asses_database",
         "schedule": crontab(hour=0, minute=0),
     },
-        "fetch-staking-every-24-hours": {
+    "fetch-staking-every-24-hours": {
         "task": "cryptotracker.tasks.update_staking_assets",
         "schedule": crontab(hour=0, minute=0),
     },
