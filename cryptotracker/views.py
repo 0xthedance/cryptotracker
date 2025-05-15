@@ -29,8 +29,12 @@ from cryptotracker.tasks import (
     update_assets_database,
     update_staking_assets,
     update_cryptocurrency_price,
+    update_protocols,
 )
 from cryptotracker.utils import get_total_value, get_last_price
+
+from cryptotracker.protocols.protocols import get_protocols_snapshots
+
 
 
 # Create your views here.
@@ -57,8 +61,15 @@ def portfolio(request):
     addresses = Address.objects.filter(user=request.user)
     aggregated_assets = fetch_aggregated_assets(addresses)
     total_eth_staking = get_aggregated_staking(addresses)
-    portfolio_value = get_total_value(aggregated_assets, total_eth_staking)
-    total_protocols = None
+    total_liquity_v1 = get_protocols_snapshots(
+        addresses, protocol_name="Liquity V1"
+    )
+    total_liquity_v2 = get_protocols_snapshots(
+        addresses, protocol_name="Liquity V2"
+    )
+    total_aave = get_protocols_snapshots(addresses, protocol_name="Aave V3")
+    portfolio_value = get_total_value(aggregated_assets, total_eth_staking, total_liquity_v1, total_liquity_v2, total_aave)
+
 
     # Format the amounts for display
     if aggregated_assets:
@@ -82,7 +93,9 @@ def portfolio(request):
         "user": request.user,
         "assets": aggregated_assets,
         "total_eth_staking": total_eth_staking,
-        "total_protocols": total_protocols,
+        "total_liquity_v1": total_liquity_v1,
+        "total_liquity_v2": total_liquity_v2,
+        "total_aave": total_aave,
         "addresses": addresses,
         "portfolio_value": f"{portfolio_value:,.2f}",
         "last_snapshot_date": last_snapshot_date,
@@ -312,6 +325,7 @@ def refresh(request):
         update_cryptocurrency_price.s(),
         update_assets_database.s(),
         update_staking_assets.s(),
+        update_protocols.s(),
     )
 
     # Execute the task group asynchronously

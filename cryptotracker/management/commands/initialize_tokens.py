@@ -86,6 +86,55 @@ TOKENS = [
             "Base": None,
         },
     },
+    {
+        "name": "Bold",
+        "symbol": "BOLD",
+        "image": "cryptotracker/logos/bold.png",
+        "address": {
+            "Ethereum": "0xb01dd87b29d187f3e3a4bf6cdaebfb97f3d9ab98",
+            "Avalanche": None,
+            "Arbitrum": None,
+            "Gnosis Chain": None,
+            "Base": None,
+        },
+
+    },
+    {
+        "name": "Wrapped ETH",
+        "symbol": "WETH",
+        "image": "cryptotracker/logos/WETH.png",
+        "address": {
+            "Ethereum": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+            "Avalanche": None,
+            "Arbitrum": None,
+            "Gnosis Chain": None,
+            "Base": None,
+        },
+    },
+    {
+        "name": "Wrapped stETH",
+        "symbol": "wstETH",
+        "image": "cryptotracker/logos/wstETH.png",
+        "address": {
+            "Ethereum": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+            "Avalanche": None,
+            "Arbitrum": None,
+            "Gnosis Chain": None,
+            "Base": None,
+        },
+    },
+    {
+        "name": "Rocket Pool ETH",
+        "symbol": "rETH",
+        "image": "cryptotracker/logos/rETH.png",
+        "address": {
+            "Ethereum": "0xae78736cd615f374d3085123a210448e74fc6393",
+            "Avalanche": None,
+            "Arbitrum": None,
+            "Gnosis Chain": None,
+            "Base": None,
+        },
+    },
 ]
 
 

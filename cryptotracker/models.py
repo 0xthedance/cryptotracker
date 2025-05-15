@@ -110,7 +110,6 @@ class Pool(models.Model):
 
 class PoolBalance(models.Model):
     pool = models.ForeignKey("Pool", on_delete=models.CASCADE)
-    address = models.ForeignKey("Address", on_delete=models.CASCADE)
     token = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=20, decimal_places=5)
     snapshot_date = models.DateTimeField()
@@ -121,7 +120,6 @@ class PoolBalance(models.Model):
 
 class PoolRewards(models.Model):
     pool = models.ForeignKey("Pool", on_delete=models.CASCADE)
-    address = models.ForeignKey("Address", on_delete=models.CASCADE)
     token = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=20, decimal_places=5)
     snapshot_date = models.DateTimeField()

@@ -10,6 +10,7 @@ from cryptotracker.models import (
 )
 from cryptotracker.staking import fetch_staking_assets
 from cryptotracker.utils import fetch_cryptocurrency_price
+from cryptotracker.protocols import update_protocols_snapshots
 
 
 @shared_task
@@ -78,3 +79,23 @@ def update_staking_assets():
             print(f"An error occurred: {e}")
             continue
     return "Staking assets updated successfully!"
+
+@shared_task
+def update_protocols():
+    """
+    Fetches the protocols of a user every 24h from the Ethereum blockchain and stores them in the database.
+    This function uses the Ape library to interact with the Ethereum blockchain and fetch the balance of each token.
+    It also fetches the current price of each token using the fetch_historical_price function from Coingeko app
+    """
+
+    addresses = Address.objects.all()
+    for address in addresses:
+        try:
+            update_protocols_snapshots(address.public_address)
+        except TimeoutError:
+            print("TimeoutError: Retrying...")
+            continue
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            continue
+    return "Protocols updated successfully!"
