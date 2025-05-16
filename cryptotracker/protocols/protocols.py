@@ -1,4 +1,4 @@
-from cryptotracker.models import Network, Pool, Protocol, PoolBalance, Cryptocurrency, PoolRewards, Address
+from cryptotracker.models import Network, Pool, Protocol, PoolBalance, PoolRewards, Address
 
 from cryptotracker.utils import get_last_price
 from datetime import datetime
@@ -15,14 +15,17 @@ def save_pool_balance(address, pool, token, quantity):
         token (Cryptocurrency): The cryptocurrency object.
         quantity (float): The quantity of the token.
     """
-    pool_balance = PoolBalance(
-        address=Address.objects.get(public_address=address),
-        pool=pool,
-        token=token,
-        quantity=quantity,
-        snapshot_date=datetime.now(),
-    )
-    pool_balance.save()
+    try:
+        pool_balance = PoolBalance(
+            address=Address.objects.get(public_address=address),
+            pool=pool,
+            token=token,
+            quantity=quantity,
+            snapshot_date=datetime.now(),
+        )
+        pool_balance.save()
+    except Exception as e:
+        print(f"Error saving pool {pool.name} balance: {e}")
 
 def save_pool_rewards(address, pool, token, quantity):
     """
@@ -41,30 +44,21 @@ def save_pool_rewards(address, pool, token, quantity):
     )
     pool_rewards.save()
 
-def update_protocols_snapshots(address: str):
-    """
-    Updates the snapshots of the protocols in the database.
-    This function iterates through all the protocols and their pools, fetching the data from the blockchain
-    and saving it to the database.
-    """
-    update_lqty_v1_staking(address)
-    update_lqty_v2_staking(address)
-    update_lqty_stability_pool(address)
-    update_lqty_stability_pool_v2(address)
-    update_aave_lending_pool_data(address)
 
-def get_protocols_snapshots(addresses: list, protocol_name: srt) -> dict:
+def get_protocols_snapshots(addresses: list, protocol_name: str) -> dict:
     """
     Fetches the last snapshot of the protocols in the database.
     This function iterates through all the protocols and their pools, fetching the data from the database           
     and returning it as a dictionary.
     """
     last_pool_data = {}
-    protocols = Protocol.objects.get(name=protocol_name)
+    protocols = Protocol.objects.filter(name=protocol_name)
     for protocol in protocols:
+        print(protocol)
+        
         
         pools_balances = PoolBalance.objects.filter(address__in=addresses, pool__protocol=protocol)
-        pools_rewards = PoolRewards.objects.filter(addres__in=addresses, pool__protocol=protocol)
+        pools_rewards = PoolRewards.objects.filter(address__in=addresses, pool__protocol=protocol)
         if not pools_balances:
             continue
         
@@ -100,16 +94,18 @@ def get_protocols_snapshots(addresses: list, protocol_name: srt) -> dict:
                 current_price = get_last_price(
                         balance.token.name, balance.snapshot_date.date()
                     )
-                last_pool_data[protocol.name][pool.name]["balances"][balance.token.name] = {
-                    "network": balance.token.network.name,
+                last_pool_data[pool.name]["balances"][balance.token.symbol] = {
+                    "network": balance.pool.protocol.network.name,
                     "quantity": balance.quantity,
                     "balance_eur": balance.quantity * current_price,
                     "image": balance.token.image,
                 }
             for reward in last_rewards:
-                last_pool_data[protocol.name][pool.name]["rewards"][reward.token.name] = {
+                last_pool_data[pool.name]["rewards"][reward.token.symbol] = {
                     "quantity": reward.quantity,
                 }
+            print(last_pool_data)
+    print(last_pool_data, "last_pool_data")
     return last_pool_data
 
 

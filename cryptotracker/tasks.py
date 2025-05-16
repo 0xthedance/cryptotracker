@@ -10,7 +10,8 @@ from cryptotracker.models import (
 )
 from cryptotracker.staking import fetch_staking_assets
 from cryptotracker.utils import fetch_cryptocurrency_price
-from cryptotracker.protocols import update_protocols_snapshots
+from cryptotracker.protocols.liquity import update_lqty_pools
+from cryptotracker.protocols.aave import update_aave_lending_pools
 
 
 @shared_task
@@ -91,7 +92,9 @@ def update_protocols():
     addresses = Address.objects.all()
     for address in addresses:
         try:
-            update_protocols_snapshots(address.public_address)
+            print(f"Fetching protocols for address: {address.public_address}")
+            update_lqty_pools(address.public_address)
+            update_aave_lending_pools(address.public_address)
         except TimeoutError:
             print("TimeoutError: Retrying...")
             continue

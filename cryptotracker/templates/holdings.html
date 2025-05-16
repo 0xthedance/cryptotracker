@@ -1,8 +1,20 @@
 {% extends "base.html" %}
 {% load static %}
-
+{% load humanize %}
 
 {% block content %}
+
+<style>
+    table {
+        table-layout: fixed;
+        width: 100%;
+    }
+    th, td {
+        width: 20%; /* Adjust this percentage to fit your needs */
+        text-align: center;
+        word-wrap: break-word; /* Ensures long text wraps within the cell */
+    }
+</style>
 
 <section class="section">
     <div class="container">
@@ -11,17 +23,17 @@
         </div>
         <div class="subtitle is-size-7 has-text-right">
             <p>Last updated: {{ last_snapshot_date }}</p>
-        <a class="button is-small is-light mt-3 has-text-right" href="{% url 'refresh'%}">
-            Refresh
-        </a>
-    </div>
+            <a class="button is-small is-light mt-3 has-text-right" href="{% url 'refresh' %}">
+                Refresh
+            </a>
+        </div>
 
         <h1 class="title">Assets</h1>
         {% if assets %}
         <table class="table is-fullwidth is-striped">
             <thead>
                 <tr>
-                    <th >Token</th>
+                    <th>Token</th>
                     <th>Network</th>
                     <th style="text-align: right;">Amount</th>
                     <th style="text-align: right;">EUR value</th>
@@ -30,14 +42,16 @@
             <tbody>
                 {% for cryptocurrency, values in assets.items %}
                 <tr>
-                    <td ><span class="icon-text">
-                        <span class="icon">
-                            <img src="{% static values.image %}" alt="{{ cryptocurrency }} logo" style="width: 24px; height: 24px;">
+                    <td>
+                        <span class="icon-text">
+                            <span class="icon">
+                                <img src="{% static values.image %}" alt="{{ cryptocurrency }} logo" style="width: 24px; height: 24px;">
+                            </span>
+                            <span>{{ cryptocurrency }}</span>
                         </span>
-                        <span>{{ cryptocurrency }}</span>
-                    </span></td>
+                    </td>
                     <td>{{ values.network }}</td>
-                    <td style="text-align: right;">{{ values.amount }} {{cryptocurrency}}</td>
+                    <td style="text-align: right;">{{ values.amount }} {{ cryptocurrency }}</td>
                     <td style="text-align: right;">{{ values.amount_eur }} €</td>
                 </tr>
                 {% endfor %}
@@ -47,46 +61,15 @@
         <p>This portfolio has no funds.</p>
         {% endif %}
     </div>
-</div>
-<div class="container">
-    <h1 class="title my-6"> ETH Staking</h1>
-    {% if total_eth_staking %}
-    <table class="table is-fullwidth is-striped">
-        <thead>
-            <tr>
-                <th>Pool</th>
-                <th>Nº Validators</th>
-                <th>Balance</th>
-                <th>Balance (EUR)</th>
-                <th>Rewards</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td><span class="icon-text">
-                    <span class="icon">
-                        <img src="{% static "cryptotracker/logos/ethereum_staking.png" %}" alt="eth staking logo" style="width: 24px; height: 24px;">
-                    </span>
-                    <span>ETH</span>
-                </span></td>
-                <td>{{ total_eth_staking.num_validators }}</td>
-                <td>{{ total_eth_staking.balance }}</td>
-                <td>{{ total_eth_staking.balance_eur }}</td>
-                <td>+ {{ total_eth_staking.rewards }}</td>
-            </tr>
-        </tbody>
-    </table>
-    {% else %}
-    <p>This portfolio has no staking.</p>
-    {% endif %}
+
     <div class="container">
-        <h1 class="title my-6"> Protocols</h1>
-        {% if total_protocols %}
+        <h1 class="title my-6"> ETH Staking</h1>
+        {% if staking %}
         <table class="table is-fullwidth is-striped">
             <thead>
                 <tr>
-                    <th>Protocol</th>
                     <th>Pool</th>
+                    <th>Nº Validators</th>
                     <th>Balance</th>
                     <th>Balance (EUR)</th>
                     <th>Rewards</th>
@@ -100,16 +83,65 @@
                         </span>
                         <span>ETH</span>
                     </span></td>
-                    <td>{{ total_eth_staking.num_validators }}</td>
-                    <td>{{ total_eth_staking.balance }}</td>
-                    <td>{{ total_eth_staking.balance_eur }}</td>
-                    <td>+ {{ total_eth_staking.rewards }}</td>
+                    <td>{{ staking.num_validators }}</td>
+                    <td>{{ staking.balance }}</td>
+                    <td>{{ staking.balance_eur }}</td>
+                    <td>+ {{ staking.rewards }}</td>
                 </tr>
             </tbody>
         </table>
         {% else %}
-        <p>This portfolio has no protocols.</p>
+        <p>This portfolio has no staking.</p>
         {% endif %}
+    </div>
 
+    {% for protocol_name, protocol_data in protocols.items %}
+    <div class="container">
+        <h1 class="title my-6">{{ protocol_name }}</h1>
+        {% if protocol_data %}
+        <table class="table is-fullwidth is-striped">
+            <thead>
+                <tr>
+                    <th>Pool</th>
+                    <th>Network</th>
+                    <th>Balance</th>
+                    <th>Balance (EUR)</th>
+                    <th>Rewards</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pool, values in protocol_data.items %}
+                <tr>
+                    <td rowspan="{{ values.balances|length }}">{{ pool }}</td>
+                    {% for token, token_values in values.balances.items %}
+                    <td>{{ token_values.network }}</td>
+                    <td>{{ token_values.quantity|floatformat:2|intcomma }} {{ token }}</td>
+                    <td>{{ token_values.balance_eur|floatformat:2|intcomma }} EUR</td>
+                    {% if forloop.first %}
+                    <td rowspan="{{ values.rewards|length }}">
+                        {% for reward_token, reward_values in values.rewards.items %}
+                        + {{ reward_values.quantity|floatformat:2|intcomma }} {{ reward_token }}<br>
+                        {% endfor %}
+                    </td>
+                    {% endif %}
+                </tr>
+                {% if not forloop.last %}
+                <tr>
+                    <!-- Empty cells for subsequent rows -->
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>This portfolio has no data for {{ protocol_name }}.</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+</section>
 
-    {% endblock content %}
+{% endblock content %}

@@ -97,6 +97,9 @@ class Protocol(models.Model):
     name = models.CharField(max_length=20)
     network = models.ForeignKey("Network", on_delete=models.CASCADE)
 
+    def __str__(self):
+        return f"{self.name} - {self.network}"
+
 
 class Pool(models.Model):
     name = models.CharField(max_length=20)
@@ -109,6 +112,7 @@ class Pool(models.Model):
 
 
 class PoolBalance(models.Model):
+    address = models.ForeignKey("Address", on_delete=models.CASCADE)
     pool = models.ForeignKey("Pool", on_delete=models.CASCADE)
     token = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=20, decimal_places=5)
@@ -119,6 +123,7 @@ class PoolBalance(models.Model):
 
 
 class PoolRewards(models.Model):
+    address = models.ForeignKey("Address", on_delete=models.CASCADE)
     pool = models.ForeignKey("Pool", on_delete=models.CASCADE)
     token = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=20, decimal_places=5)

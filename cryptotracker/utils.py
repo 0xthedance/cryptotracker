@@ -112,7 +112,7 @@ def get_last_price(crypto_id: str, snapshot_date) -> Decimal:
     return current_price.price
 
 
-def get_total_value(aggregated_assets: dict, total_eth_staking: dict) -> float:
+def get_total_value(aggregated_assets: dict, total_eth_staking: dict, total_liquity_v1: dict, total_liquity_v2:dict, total_aave:dict) -> float:
     """
     Calculates the total value of the aggregated assets.
     Args:
@@ -126,4 +126,16 @@ def get_total_value(aggregated_assets: dict, total_eth_staking: dict) -> float:
         total_value += asset["amount_eur"]
     if total_eth_staking:
         total_value += total_eth_staking["balance_eur"]
+    if total_liquity_v1:
+        for pools in total_liquity_v1.values():
+            for asset in pools["balances"].values():
+                total_value += asset["balance_eur"]
+    if total_liquity_v2:
+        for pools in total_liquity_v2.values():
+            for asset in pools["balances"].values():
+                total_value += asset["balance_eur"]
+    if total_aave:
+        for pools in total_aave.values():
+            for asset in pools["balances"].values():
+                total_value += asset["balance_eur"]
     return total_value

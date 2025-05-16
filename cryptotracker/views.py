@@ -92,10 +92,8 @@ def portfolio(request):
     context = {
         "user": request.user,
         "assets": aggregated_assets,
-        "total_eth_staking": total_eth_staking,
-        "total_liquity_v1": total_liquity_v1,
-        "total_liquity_v2": total_liquity_v2,
-        "total_aave": total_aave,
+        "staking": total_eth_staking,
+        "protocols": { "Liquity V1": total_liquity_v1, "Liquity V2": total_liquity_v2, "Aave V3": total_aave },
         "addresses": addresses,
         "portfolio_value": f"{portfolio_value:,.2f}",
         "last_snapshot_date": last_snapshot_date,
@@ -120,19 +118,27 @@ def accounts(request):
     accounts_detail = []
     accounts = Account.objects.filter(user=request.user)
 
-    for account in accounts:
-        accounts = [account]
-        addresses = Address.objects.filter(account=account)
+    if accounts:
+        for account in accounts:
+            accounts = [account]
+            addresses = Address.objects.filter(account=account)
 
-        aggregated_assets = fetch_aggregated_assets(addresses)
-        total_eth_staking = get_aggregated_staking(addresses)
-        account_value = get_total_value(aggregated_assets, total_eth_staking)
-        account_detail = {
-            "account": account,
-            "balance": f"{account_value:,.2f}",
-        }
-        accounts_detail.append(account_detail)
-    print(accounts_detail)
+            aggregated_assets = fetch_aggregated_assets(addresses)
+            total_eth_staking = get_aggregated_staking(addresses)
+            total_liquity_v1 = get_protocols_snapshots(
+                addresses, protocol_name="Liquity V1"
+            )
+            total_liquity_v2 = get_protocols_snapshots(
+                addresses, protocol_name="Liquity V2"
+            )
+            total_aave = get_protocols_snapshots(addresses, protocol_name="Aave V3")
+            account_value = get_total_value(aggregated_assets, total_eth_staking, total_liquity_v1, total_liquity_v2, total_aave)
+            account_detail = {
+                "account": account,
+                "balance": f"{account_value:,.2f}",
+            }
+            accounts_detail.append(account_detail)
+        print(accounts_detail)
 
     if request.method == "POST":
         form = AccountForm(request.POST)
@@ -184,7 +190,14 @@ def addresses(request):
         addresses = [address]
         aggregated_assets = fetch_aggregated_assets(addresses)
         total_eth_staking = get_aggregated_staking(addresses)
-        address_value = get_total_value(aggregated_assets, total_eth_staking)
+        total_liquity_v1 = get_protocols_snapshots(
+            addresses, protocol_name="Liquity V1"
+        )
+        total_liquity_v2 = get_protocols_snapshots(
+            addresses, protocol_name="Liquity V2"
+        )
+        total_aave = get_protocols_snapshots(addresses, protocol_name="Aave V3")
+        address_value = get_total_value(aggregated_assets, total_eth_staking, total_liquity_v1, total_liquity_v2, total_aave)
         address_detail = {
             "address": address,
             "balance": f"{address_value:,.2f}",
@@ -222,7 +235,14 @@ def address_detail(request, public_address):
     addresses = [address]
     aggregated_assets = fetch_aggregated_assets(addresses)
     total_eth_staking = get_aggregated_staking(addresses)
-    portfolio_value = get_total_value(aggregated_assets, total_eth_staking)
+    total_liquity_v1 = get_protocols_snapshots(
+        addresses, protocol_name="Liquity V1"
+    )
+    total_liquity_v2 = get_protocols_snapshots(
+        addresses, protocol_name="Liquity V2"
+    )
+    total_aave = get_protocols_snapshots(addresses, protocol_name="Aave V3")
+    portfolio_value = get_total_value(aggregated_assets, total_eth_staking, total_liquity_v1, total_liquity_v2, total_aave)
 
     # Format the amounts for display
     if aggregated_assets:
@@ -245,7 +265,8 @@ def address_detail(request, public_address):
     context = {
         "user": request.user,
         "assets": aggregated_assets,
-        "total_eth_staking": total_eth_staking,
+        "staking": total_eth_staking,
+        "protocols": { "Liquity V1": total_liquity_v1, "Liquity V2": total_liquity_v2, "Aave V3": total_aave },
         "addresses": addresses,
         "portfolio_value": f"{portfolio_value:,.2f}",
         "last_snapshot_date": last_snapshot_date,

@@ -87,7 +87,7 @@ TOKENS = [
         },
     },
     {
-        "name": "Bold",
+        "name": "liquity-bold",
         "symbol": "BOLD",
         "image": "cryptotracker/logos/bold.png",
         "address": {
@@ -100,7 +100,7 @@ TOKENS = [
 
     },
     {
-        "name": "Wrapped ETH",
+        "name": "weth",
         "symbol": "WETH",
         "image": "cryptotracker/logos/WETH.png",
         "address": {
@@ -112,7 +112,7 @@ TOKENS = [
         },
     },
     {
-        "name": "Wrapped stETH",
+        "name": "wrapped-steth",
         "symbol": "wstETH",
         "image": "cryptotracker/logos/wstETH.png",
         "address": {
@@ -124,7 +124,7 @@ TOKENS = [
         },
     },
     {
-        "name": "Rocket Pool ETH",
+        "name": "rocket-pool-eth",
         "symbol": "rETH",
         "image": "cryptotracker/logos/rETH.png",
         "address": {

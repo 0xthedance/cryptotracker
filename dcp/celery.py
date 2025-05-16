@@ -19,5 +19,9 @@ app.conf.beat_schedule = {
         "task": "cryptotracker.tasks.update_cryptocurrency_price",
         "schedule": crontab(hour=0, minute=1),
     },
+    "fetch-protocols-every-24-hours": {
+        "task": "cryptotracker.tasks.update_protocols",
+        "schedule": crontab(hour=0, minute=2),
+    },
 }
 app.autodiscover_tasks()
