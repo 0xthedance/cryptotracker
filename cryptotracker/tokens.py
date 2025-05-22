@@ -10,7 +10,7 @@ from cryptotracker.models import (
 )
 
 
-def fetch_assets(address: Address) -> None:
+def fetch_assets(address: Address, snapshot_date) -> None:
     """
     Fetches the assets of a user from the Ethereum blockchain and stores them in the database.
     This function uses the Ape library to interact with the Ethereum blockchain and fetch the balance of each token.
@@ -36,7 +36,7 @@ def fetch_assets(address: Address) -> None:
                         cryptocurrency=token,
                         address=address,
                         quantity=token_asset / 1e18,
-                        snapshot_date=datetime.now(),
+                        snapshot_date=snapshot_date.date,
                     )
                     asset_snapshot.save()
 

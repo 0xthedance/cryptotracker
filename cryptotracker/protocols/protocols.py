@@ -14,7 +14,7 @@ from datetime import datetime
 from django.db.models import Max
 
 
-def save_pool_balance(address, pool, token, quantity):
+def save_pool_balance(address, pool, token, quantity, date):
     """
     Saves the pool balance to the database.
     Args:
@@ -28,7 +28,7 @@ def save_pool_balance(address, pool, token, quantity):
             pool=pool,
             token=token,
             quantity=quantity,
-            snapshot_date=datetime.now(),
+            snapshot_date=date.date,
         )
         print(pool_balance)
 
@@ -37,7 +37,7 @@ def save_pool_balance(address, pool, token, quantity):
         print(f"Error saving pool {pool.name} balance: {e}")
 
 
-def save_pool_rewards(address, pool, token, quantity):
+def save_pool_rewards(address, pool, token, quantity, date):
     """
     Saves the pool rewards to the database.
     Args:
@@ -50,7 +50,7 @@ def save_pool_rewards(address, pool, token, quantity):
         pool=pool,
         token=token,
         quantity=quantity,
-        snapshot_date=datetime.now(),
+        snapshot_date=date.date,
     )
     print (pool_rewards)
     pool_rewards.save()

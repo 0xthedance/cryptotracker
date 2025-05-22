@@ -73,7 +73,7 @@ class SnapshotAssets(models.Model):
     )
     address = models.ForeignKey("Address", on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=20, decimal_places=5)
-    snapshot_date = models.DateTimeField()
+    snapshot_date = models.ForeignKey("SnapshotDate", on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.cryptocurrency.name} - {self.quantity} - {self.snapshot_date}"
@@ -87,7 +87,7 @@ class SnapshotETHValidator(models.Model):
     status = models.CharField(max_length=20)
     activation_epoch = models.CharField()
     rewards = models.DecimalField(max_digits=20, decimal_places=5)
-    snapshot_date = models.DateTimeField()
+    snapshot_date = models.ForeignKey("SnapshotDate", on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.validator_index} - {self.balance}"
@@ -95,17 +95,16 @@ class SnapshotETHValidator(models.Model):
 
 class Protocol(models.Model):
     name = models.CharField(max_length=20)
-    network = models.ForeignKey("Network", on_delete=models.CASCADE)
+    image = models.CharField(max_length=200)
 
     def __str__(self):
-        return f"{self.name} - {self.network}"
+        return f"{self.name}"
 
 
 class Pool(models.Model):
     name = models.CharField(max_length=20)
-    protocol = models.ForeignKey("Protocol", on_delete=models.CASCADE)
+    protocol = models.ForeignKey("ProtocolNetwork", on_delete=models.CASCADE)
     address = models.CharField(max_length=42)
-    image = models.CharField(max_length=200)
 
     def __str__(self):
         return f"{self.name} - {self.protocol}"
@@ -116,7 +115,7 @@ class PoolBalance(models.Model):
     pool = models.ForeignKey("Pool", on_delete=models.CASCADE)
     token = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=20, decimal_places=5)
-    snapshot_date = models.DateTimeField()
+    snapshot_date = models.ForeignKey("SnapshotDate", on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.pool.name} - {self.quantity} - {self.snapshot_date}"
@@ -127,10 +126,24 @@ class PoolRewards(models.Model):
     pool = models.ForeignKey("Pool", on_delete=models.CASCADE)
     token = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=20, decimal_places=5)
-    snapshot_date = models.DateTimeField()
+    snapshot_date = models.ForeignKey("SnapshotDate", on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.pool.name} - {self.quantity} - {self.snapshot_date}"
+
+
+class SnapshotTrove(models.Model):
+    address = models.ForeignKey("Address", on_delete=models.CASCADE)
+    pool = models.ForeignKey("Pool", on_delete=models.CASCADE)
+    trove_id = models.CharField(max_length=42)
+    token = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)     # WETH, wstETH,rETH
+    collateral = models.DecimalField(max_digits=20, decimal_places=5)
+    debt = models.DecimalField(max_digits=20, decimal_places=5)
+    interest_rate = models.DecimalField(max_digits=5, decimal_places=2)
+    snapshot_date = models.ForeignKey("SnapshotDate", on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.pool.name} - {self.collateral} - {self.snapshot_date}"
 
 
 class SnapshotDate(models.Model):
@@ -139,3 +152,11 @@ class SnapshotDate(models.Model):
 
     def __str__(self):
         return f"{self.date} - {self.address}"
+
+
+class ProtocolNetwork(models.Model):
+    protocol = models.ForeignKey("Protocol", on_delete=models.CASCADE)
+    network = models.ForeignKey("Network", on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.protocol.name} on {self.network.name}"

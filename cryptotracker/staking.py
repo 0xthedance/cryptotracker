@@ -92,7 +92,7 @@ def get_aggregated_staking(addresses: list) -> dict:
     return total_eth_staking
 
 
-def fetch_staking_assets(address: str):
+def fetch_staking_assets(address: str, snapshot_date):
     """
     Fetch the staking assets of a user from the Ethereum blockchain and store them in the database.
     This function uses the Ape library to interact with the Ethereum blockchain and fetch the balance of each token.
@@ -117,7 +117,7 @@ def fetch_staking_assets(address: str):
             status=validator.status,
             activation_epoch=validator.activation_epoch,
             rewards=rewards[str(validator.index)]["performance"],
-            snapshot_date=datetime.now(),
+            snapshot_date=snapshot_date.date,
         )
         validator_snapshot.save()
 

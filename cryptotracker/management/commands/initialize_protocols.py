@@ -1,9 +1,10 @@
 from django.core.management.base import BaseCommand
-from cryptotracker.models import Network, Pool, Protocol
+from cryptotracker.models import Network, Pool, Protocol, ProtocolNetwork
 
 PROTOCOLS = [
     {
         "name": "Liquity V1",
+        "image": "cryptotracker/logos/liquity_v1.png",
         "Ethereum": [
             {
                 "name": "staking",
@@ -17,18 +18,19 @@ PROTOCOLS = [
             },
             {
                 "name": "borrow",
-                "address":"0x7b",
-                "image" : "cryptotracker/logos/liquity_staking_v2.png",
+                "address": "0x7b",
+                "image": "cryptotracker/logos/liquity_borrow.png",
             },
         ],
     },
     {
         "name": "Liquity V2",
+        "image": "cryptotracker/logos/liquity_v2.png",
         "Ethereum": [
             {
                 "name": "borrow",
-                "address":"0x0x",
-                "image" : "cryptotracker/logos/liquity_staking_v2.png",
+                "address": "0x0x",
+                "image": "cryptotracker/logos/liquity_borrow_v2.png",
             },
             {
                 "name": "staking",
@@ -54,49 +56,46 @@ PROTOCOLS = [
     },
     {
         "name": "Aave V3",
+        "image": "cryptotracker/logos/aave.png",
         "Ethereum": [
             {
                 "name": "lending_pool",
                 "address": "0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e",
-                "image": "cryptotracker/logos/aave.png",
+                
             },
         ],
         "Arbitrum": [
             {
                 "name": "lending_pool",
                 "address": "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
-                "image": "cryptotracker/logos/aave.png",
             },
         ],
         "Avalanche": [
             {
                 "name": "lending_pool",
                 "address": "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
-                "image": "cryptotracker/logos/aave.png",
             },
         ],
         "Gnosis Chain": [
             {
                 "name": "lending_pool",
                 "address": "0x36616cf17557639614c1cdDb356b1B83fc0B2132",
-                "image": "cryptotracker/logos/aave.png",
             },
         ],
         "Base": [
             {
                 "name": "lending_pool",
                 "address": "0xe20fCBdBfFC4Dd138cE8b2E6FBb6CB49777ad64D",
-                "image": "cryptotracker/logos/aave.png",
             },
         ],
     },
     {
         "name": "Uniswap V3",
+        "image": "cryptotracker/logos/uniswap.png",
         "Ethereum": [
             {
                 "name": "lending_pool",
                 "address": "0x1f98431c8ad98523631ae4a59f267346ea31f984",
-                "image": "cryptotracker/logos/uniswap.png",
             },
         ],
     }
@@ -105,48 +104,72 @@ PROTOCOLS = [
 
 
 class Command(BaseCommand):
-    help = "Initialize the protocols in the aplication"
+    help = "Initialize the protocols and pools in the application"
 
     def handle(self, *args, **options):
         networks = Network.objects.all()
 
-        for network in networks:         
-        # Initialize the Protocols model
-            for protocol in PROTOCOLS:
-                obj_protocol, created = Protocol.objects.get_or_create(
-                    name=protocol["name"],
+        for protocol_data in PROTOCOLS:
+            # Create or get the Protocol
+            protocol, created_protocol = Protocol.objects.get_or_create(
+                name=protocol_data["name"],
+                defaults={"image": protocol_data["image"]},
+            )
+            if created_protocol:
+                self.stdout.write(
+                    self.style.SUCCESS(f"Added protocol {protocol.name} to the database.")
+                )
+            else:
+                self.stdout.write(
+                    self.style.WARNING(f"Protocol {protocol.name} already exists.")
+                )
+
+            # Create ProtocolNetwork entries for each network
+            for network in networks:
+                protocol_network, created_protocol_network = ProtocolNetwork.objects.get_or_create(
+                    protocol=protocol,
                     network=network,
                 )
-                if created:
+                if created_protocol_network:
                     self.stdout.write(
-                        self.style.SUCCESS(f"Added {protocol['name']} to the database.")
+                        self.style.SUCCESS(
+                            f"Linked protocol {protocol.name} to network {network.name}."
+                        )
                     )
                 else:
                     self.stdout.write(
-                        self.style.WARNING(f"{protocol['name']} already exists in the database.")
+                        self.style.WARNING(
+                            f"Protocol {protocol.name} is already linked to network {network.name}."
+                        )
                     )
-            
+
                 # Check if the network has pools defined in the protocol
-                if network.name not in protocol:
+                if network.name not in protocol_data:
                     self.stdout.write(
-                        self.style.WARNING(f"No pools defined for {protocol['name']} on {network.name}.")
+                        self.style.WARNING(
+                            f"No pools defined for {protocol.name} on {network.name}."
+                        )
                     )
                     continue
 
-            # Initialize the Pool model
-                for pool in protocol[network.name]:
-                    obj, created = Pool.objects.get_or_create(
-                        name=pool["name"],
-                        protocol=obj_protocol,
-                        address=pool["address"],
-                        image=pool["image"],
+                # Create or get the Pools for the protocol and network
+                for pool_data in protocol_data[network.name]:
+                    pool, created_pool = Pool.objects.get_or_create(
+                      
+                        name=pool_data["name"],
+                        protocol=protocol_network,
+                        address=pool_data["address"],
+                        defaults={},
                     )
-                    if created:
+                    if created_pool:
                         self.stdout.write(
-                            self.style.SUCCESS(f"Added {pool['name']} to the database.")
+                            self.style.SUCCESS(
+                                f"Added pool {pool.name} for protocol {protocol.name} on network {network.name}."
+                            )
                         )
                     else:
                         self.stdout.write(
-                            self.style.WARNING(f"{pool['name']} already exists in the database.")
+                            self.style.WARNING(
+                                f"Pool {pool.name} for protocol {protocol.name} on network {network.name} already exists."
+                            )
                         )
-                self.stdout.write(self.style.SUCCESS("All protocols and pools initialized."))

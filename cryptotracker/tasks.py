@@ -15,11 +15,20 @@ from cryptotracker.protocols.aave import update_aave_lending_pools
 
 
 @shared_task
-def update_cryptocurrency_price():
+def create_snapshot_date():
     """
-    Fetches the current price of each cryptocurrency every 24h from the Coingecko API and stores it in the database.
-    This function uses the Coingecko API to fetch the current price of each cryptocurrency and stores it in the database.
+    Creates a new SnapshotDate entry and returns its ID.
     """
+    snapshot_date = SnapshotDate.objects.create(date=datetime.now())
+    return snapshot_date.id
+
+
+@shared_task
+def update_cryptocurrency_price(snapshot_date_id):
+    """
+    Fetches the current price of each cryptocurrency and stores it in the database with the given SnapshotDate.
+    """
+    snapshot_date = SnapshotDate.objects.get(id=snapshot_date_id)
     cryptocurrencies = Cryptocurrency.objects.all()
     crypto_ids = [crypto.name for crypto in cryptocurrencies]
 
@@ -28,7 +37,7 @@ def update_cryptocurrency_price():
         crypto_price = CryptocurrencyPrice(
             cryptocurrency=Cryptocurrency.objects.get(name=crypto),
             price=prices[crypto]["eur"],
-            date=datetime.now(),
+            date=snapshot_date.date,
         )
         crypto_price.save()
         print(f"Price of {crypto} updated to {prices[crypto]['eur']} EUR")
@@ -36,43 +45,36 @@ def update_cryptocurrency_price():
 
 
 @shared_task
-def update_assets_database():
+def update_assets_database(snapshot_date_id):
     """
-    Fetches the assets of a user every 24h from the Ethereum blockchain and stores them in the database.
-    This function uses the Ape library to interact with the Ethereum blockchain and fetch the balance of each token.
-    It also fetches the current price of each token using the fetch_historical_price function from Coingeko app
+    Fetches the assets of a user and stores them in the database with the given SnapshotDate.
     """
+    snapshot_date = SnapshotDate.objects.get(id=snapshot_date_id)
     print("Updating assets database...")
     addresses = Address.objects.all()
     for address in addresses:
         try:
             print(f"Fetching assets for address: {address.public_address}")
-            fetch_assets(address)
+            fetch_assets(address, snapshot_date)
         except TimeoutError:
             print("TimeoutError: Retrying...")
             continue
         except Exception as e:
             print(f"An error occurred: {e}")
             continue
-        SnapshotDate.objects.create(
-            date=datetime.now(),
-            address=address,
-        )
     return "Assets updated successfully!"
 
 
 @shared_task
-def update_staking_assets():
+def update_staking_assets(snapshot_date_id):
     """
-    Fetches the staking assets of a user every 24h from the Ethereum blockchain and stores them in the database.
-    This function uses the Ape library to interact with the Ethereum blockchain and fetch the balance of each token.
-    It also fetches the current price of each token using the fetch_historical_price function from Coingeko app
+    Fetches the staking assets of a user and stores them in the database with the given SnapshotDate.
     """
-
+    snapshot_date = SnapshotDate.objects.get(id=snapshot_date_id)
     addresses = Address.objects.all()
     for address in addresses:
         try:
-            fetch_staking_assets(address)
+            fetch_staking_assets(address, snapshot_date)
         except TimeoutError:
             print("TimeoutError: Retrying...")
             continue
@@ -83,19 +85,17 @@ def update_staking_assets():
 
 
 @shared_task
-def update_protocols():
+def update_protocols(snapshot_date_id):
     """
-    Fetches the protocols of a user every 24h from the Ethereum blockchain and stores them in the database.
-    This function uses the Ape library to interact with the Ethereum blockchain and fetch the balance of each token.
-    It also fetches the current price of each token using the fetch_historical_price function from Coingeko app
+    Fetches the protocols of a user and stores them in the database with the given SnapshotDate.
     """
-
+    snapshot_date = SnapshotDate.objects.get(id=snapshot_date_id)
     addresses = Address.objects.all()
     for address in addresses:
         try:
             print(f"Fetching protocols for address: {address.public_address}")
-            update_lqty_pools(address.public_address)
-            update_aave_lending_pools(address.public_address)
+            update_lqty_pools(address.public_address, snapshot_date)
+            update_aave_lending_pools(address.public_address, snapshot_date)
         except TimeoutError:
             print("TimeoutError: Retrying...")
             continue

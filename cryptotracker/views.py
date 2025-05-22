@@ -26,6 +26,7 @@ from cryptotracker.tokens import (
     fetch_assets,
 )
 from cryptotracker.tasks import (
+    create_snapshot_date,
     update_assets_database,
     update_staking_assets,
     update_cryptocurrency_price,
@@ -366,14 +367,17 @@ def logout_view(request):
 @login_required()
 def refresh(request):
     """
-
-    # Trigger the task asynchronously
+    Trigger the tasks asynchronously with a shared SnapshotDate.
     """
+    # Create a SnapshotDate and get its ID
+    snapshot_date_id = create_snapshot_date().get()
+
+    # Trigger the tasks asynchronously
     task_group = group(
-        update_cryptocurrency_price.s(),
-        update_assets_database.s(),
-        update_staking_assets.s(),
-        update_protocols.s(),
+        update_cryptocurrency_price.s(snapshot_date_id),
+        update_assets_database.s(snapshot_date_id),
+        update_staking_assets.s(snapshot_date_id),
+        update_protocols.s(snapshot_date_id),
     )
 
     # Execute the task group asynchronously
