@@ -36,7 +36,6 @@ from cryptotracker.utils import get_total_value, get_last_price
 from cryptotracker.protocols.protocols import get_protocols_snapshots
 
 
-
 # Create your views here.
 
 
@@ -61,15 +60,19 @@ def portfolio(request):
     addresses = Address.objects.filter(user=request.user)
     aggregated_assets = fetch_aggregated_assets(addresses)
     total_eth_staking = get_aggregated_staking(addresses)
-    total_liquity_v1 = get_protocols_snapshots(
-        addresses, protocol_name="Liquity V1"
-    )
-    total_liquity_v2 = get_protocols_snapshots(
-        addresses, protocol_name="Liquity V2"
-    )
-    total_aave = get_protocols_snapshots(addresses, protocol_name="Aave V3")
-    portfolio_value = get_total_value(aggregated_assets, total_eth_staking, total_liquity_v1, total_liquity_v2, total_aave)
+    total_liquity_v1 = get_protocols_snapshots(addresses, protocol_name="Liquity V1")
+    print(total_liquity_v1, "total LQUITY V1")
+    total_liquity_v2 = get_protocols_snapshots(addresses, protocol_name="Liquity V2")
+    print(total_liquity_v2, "total LQUITY V2")
 
+    total_aave = get_protocols_snapshots(addresses, protocol_name="Aave V3")
+    portfolio_value = get_total_value(
+        aggregated_assets,
+        total_eth_staking,
+        total_liquity_v1,
+        total_liquity_v2,
+        total_aave,
+    )
 
     # Format the amounts for display
     if aggregated_assets:
@@ -93,7 +96,11 @@ def portfolio(request):
         "user": request.user,
         "assets": aggregated_assets,
         "staking": total_eth_staking,
-        "protocols": { "Liquity V1": total_liquity_v1, "Liquity V2": total_liquity_v2, "Aave V3": total_aave },
+        "protocols": {
+            "Liquity V1": total_liquity_v1,
+            "Liquity V2": total_liquity_v2,
+            "Aave V3": total_aave,
+        },
         "addresses": addresses,
         "portfolio_value": f"{portfolio_value:,.2f}",
         "last_snapshot_date": last_snapshot_date,
@@ -132,7 +139,13 @@ def accounts(request):
                 addresses, protocol_name="Liquity V2"
             )
             total_aave = get_protocols_snapshots(addresses, protocol_name="Aave V3")
-            account_value = get_total_value(aggregated_assets, total_eth_staking, total_liquity_v1, total_liquity_v2, total_aave)
+            account_value = get_total_value(
+                aggregated_assets,
+                total_eth_staking,
+                total_liquity_v1,
+                total_liquity_v2,
+                total_aave,
+            )
             account_detail = {
                 "account": account,
                 "balance": f"{account_value:,.2f}",
@@ -141,7 +154,7 @@ def accounts(request):
         print(accounts_detail)
 
     if request.method == "POST":
-        form = AccountForm(request.POST)
+        form = AccountForm(request.POST, user=request.user)
         if form.is_valid():
             account_name = form.clean_name()
             account = Account(
@@ -150,10 +163,12 @@ def accounts(request):
             )
             account.save()
             return redirect("accounts")
+    else:
+        form = AccountForm(user=request.user)
 
     context = {
         "accounts_detail": accounts_detail,
-        "form3": AccountForm(),
+        "form3": form,
     }
     return render(request, "accounts.html", context)
 
@@ -197,7 +212,13 @@ def addresses(request):
             addresses, protocol_name="Liquity V2"
         )
         total_aave = get_protocols_snapshots(addresses, protocol_name="Aave V3")
-        address_value = get_total_value(aggregated_assets, total_eth_staking, total_liquity_v1, total_liquity_v2, total_aave)
+        address_value = get_total_value(
+            aggregated_assets,
+            total_eth_staking,
+            total_liquity_v1,
+            total_liquity_v2,
+            total_aave,
+        )
         address_detail = {
             "address": address,
             "balance": f"{address_value:,.2f}",
@@ -235,14 +256,16 @@ def address_detail(request, public_address):
     addresses = [address]
     aggregated_assets = fetch_aggregated_assets(addresses)
     total_eth_staking = get_aggregated_staking(addresses)
-    total_liquity_v1 = get_protocols_snapshots(
-        addresses, protocol_name="Liquity V1"
-    )
-    total_liquity_v2 = get_protocols_snapshots(
-        addresses, protocol_name="Liquity V2"
-    )
+    total_liquity_v1 = get_protocols_snapshots(addresses, protocol_name="Liquity V1")
+    total_liquity_v2 = get_protocols_snapshots(addresses, protocol_name="Liquity V2")
     total_aave = get_protocols_snapshots(addresses, protocol_name="Aave V3")
-    portfolio_value = get_total_value(aggregated_assets, total_eth_staking, total_liquity_v1, total_liquity_v2, total_aave)
+    portfolio_value = get_total_value(
+        aggregated_assets,
+        total_eth_staking,
+        total_liquity_v1,
+        total_liquity_v2,
+        total_aave,
+    )
 
     # Format the amounts for display
     if aggregated_assets:
@@ -266,7 +289,11 @@ def address_detail(request, public_address):
         "user": request.user,
         "assets": aggregated_assets,
         "staking": total_eth_staking,
-        "protocols": { "Liquity V1": total_liquity_v1, "Liquity V2": total_liquity_v2, "Aave V3": total_aave },
+        "protocols": {
+            "Liquity V1": total_liquity_v1,
+            "Liquity V2": total_liquity_v2,
+            "Aave V3": total_aave,
+        },
         "addresses": addresses,
         "portfolio_value": f"{portfolio_value:,.2f}",
         "last_snapshot_date": last_snapshot_date,

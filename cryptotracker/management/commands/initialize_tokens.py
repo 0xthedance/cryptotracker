@@ -97,7 +97,6 @@ TOKENS = [
             "Gnosis Chain": None,
             "Base": None,
         },
-
     },
     {
         "name": "weth",

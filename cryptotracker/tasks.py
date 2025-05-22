@@ -81,6 +81,7 @@ def update_staking_assets():
             continue
     return "Staking assets updated successfully!"
 
+
 @shared_task
 def update_protocols():
     """

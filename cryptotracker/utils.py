@@ -15,7 +15,7 @@ def APIquery(url, params) -> dict:
 
     if response.status_code != 200:
         print(
-            f"Beaconchain node request {response.url} failed "
+            f"{url} request {response.url} failed "
             f"with HTTP status code {response.status_code} and text "
             f"{response.text}",
         )
@@ -112,7 +112,13 @@ def get_last_price(crypto_id: str, snapshot_date) -> Decimal:
     return current_price.price
 
 
-def get_total_value(aggregated_assets: dict, total_eth_staking: dict, total_liquity_v1: dict, total_liquity_v2:dict, total_aave:dict) -> float:
+def get_total_value(
+    aggregated_assets: dict,
+    total_eth_staking: dict,
+    total_liquity_v1: dict,
+    total_liquity_v2: dict,
+    total_aave: dict,
+) -> float:
     """
     Calculates the total value of the aggregated assets.
     Args:

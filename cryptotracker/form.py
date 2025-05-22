@@ -9,6 +9,10 @@ class AccountForm(ModelForm):
         model = Account
         fields = ["name"]
 
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)  # Pass the user when initializing the form
+        super().__init__(*args, **kwargs)
+
     def clean_name(self):
         cleaned_data = super().clean()
         name = cleaned_data["name"]
@@ -17,9 +21,9 @@ class AccountForm(ModelForm):
         if len(name) < 3 or len(name) > 20:
             raise forms.ValidationError("Invalid account name length")
 
-        # Existence check
-        if Account.objects.filter(name=name).exists():
-            raise forms.ValidationError("Account name already exists")
+        # Existence check for the same user
+        if Account.objects.filter(name=name, user=self.user).exists():
+            raise forms.ValidationError("You already have an account with this name")
 
         return name
 

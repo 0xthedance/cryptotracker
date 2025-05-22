@@ -104,6 +104,7 @@
                 <tr>
                     <th>Pool</th>
                     <th>Network</th>
+                    <th>Token</th>
                     <th>Balance</th>
                     <th>Balance (EUR)</th>
                     <th>Rewards</th>
@@ -111,32 +112,64 @@
             </thead>
             <tbody>
                 {% for pool, values in protocol_data.items %}
+                {% for token, token_values in values.balances.items %}
                 <tr>
-                    <td rowspan="{{ values.balances|length }}">{{ pool }}</td>
-                    {% for token, token_values in values.balances.items %}
+                    <td> {{pool}}</td>
                     <td>{{ token_values.network }}</td>
-                    <td>{{ token_values.quantity|floatformat:2|intcomma }} {{ token }}</td>
+                    <td>{{ token }}</td>
+                    <td>{{ token_values.quantity|floatformat:2|intcomma }}</td>
                     <td>{{ token_values.balance_eur|floatformat:2|intcomma }} EUR</td>
-                    {% if forloop.first %}
-                    <td rowspan="{{ values.rewards|length }}">
+
+                    <td>
                         {% for reward_token, reward_values in values.rewards.items %}
                         + {{ reward_values.quantity|floatformat:2|intcomma }} {{ reward_token }}<br>
                         {% endfor %}
                     </td>
-                    {% endif %}
+
                 </tr>
-                {% if not forloop.last %}
-                <tr>
-                    <!-- Empty cells for subsequent rows -->
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                </tr>
-                {% endif %}
+
                 {% endfor %}
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+    <div class="container">
+
+        {% if protocol_name == "Liquity V1" or protocol_name == "Liquity V2" %}
+        <table class="table is-fullwidth is-striped my-6 " >
+            <thead>
+                <tr>
+                    <th>Pool</th>
+                    <th>Trove Id</th>
+                    <th>Collateral</th>
+                    <th>Debt</th>
+                    <th>Interest Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pool, values in protocol_data.items %}
+                {% if pool == "borrow" %}
+                    {% for pool_troves in values.troves %}
+                    {% for trove in pool_troves %}
+                <tr>
+                    <td >{{ pool }}</td>
+                    <td>{{ trove.trove_id }}</td>
+                    <td>{{ trove.collateral|floatformat:2|intcomma }} {{trove.token.}}
+                    </td>
+                    <td>{{ trove.debt|floatformat:2|intcomma }} 
+                        {% if protocol_name == "Liquity V2" %}BOLD{% elif protocol_name == "Liquity V1" %}LUSD{% endif %}
+                    </td>
+                    <td>{{ trove.interest_rate|floatformat:2 }}%</td>
+                </tr>
+
+                {% endfor %}
+                {% endfor %}
+
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
         {% else %}
         <p>This portfolio has no data for {{ protocol_name }}.</p>
         {% endif %}

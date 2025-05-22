@@ -1,10 +1,17 @@
-from cryptotracker.models import Network, Pool, Protocol, PoolBalance, PoolRewards, Address
+from cryptotracker.models import (
+    Network,
+    Pool,
+    Protocol,
+    PoolBalance,
+    PoolRewards,
+    Address,
+    SnapshotTrove
+)
 
 from cryptotracker.utils import get_last_price
 from datetime import datetime
 
 from django.db.models import Max
-
 
 
 def save_pool_balance(address, pool, token, quantity):
@@ -23,9 +30,12 @@ def save_pool_balance(address, pool, token, quantity):
             quantity=quantity,
             snapshot_date=datetime.now(),
         )
+        print(pool_balance)
+
         pool_balance.save()
     except Exception as e:
         print(f"Error saving pool {pool.name} balance: {e}")
+
 
 def save_pool_rewards(address, pool, token, quantity):
     """
@@ -36,39 +46,57 @@ def save_pool_rewards(address, pool, token, quantity):
         quantity (float): The quantity of the token.
     """
     pool_rewards = PoolRewards(
-        address= Address.objects.get(public_address=address),
+        address=Address.objects.get(public_address=address),
         pool=pool,
         token=token,
         quantity=quantity,
         snapshot_date=datetime.now(),
     )
+    print (pool_rewards)
     pool_rewards.save()
 
 
 def get_protocols_snapshots(addresses: list, protocol_name: str) -> dict:
     """
     Fetches the last snapshot of the protocols in the database.
-    This function iterates through all the protocols and their pools, fetching the data from the database           
+    This function iterates through all the protocols and their pools, fetching the data from the database
     and returning it as a dictionary.
     """
     last_pool_data = {}
     protocols = Protocol.objects.filter(name=protocol_name)
     for protocol in protocols:
-        print(protocol)
-        
-        
-        pools_balances = PoolBalance.objects.filter(address__in=addresses, pool__protocol=protocol)
-        pools_rewards = PoolRewards.objects.filter(address__in=addresses, pool__protocol=protocol)
+        pools_balances = PoolBalance.objects.filter(
+            address__in=addresses, pool__protocol=protocol
+        )
+        pools_rewards = PoolRewards.objects.filter(
+            address__in=addresses, pool__protocol=protocol
+        )
         if not pools_balances:
             continue
-        
+
         pools = Pool.objects.filter(protocol=protocol)
         for pool in pools:
+            last_pool_data[pool.name] = {
+                "balances": {},
+                "rewards": {},
+                "troves":[],
+            }
+
+            if pool.name == "borrow":
+                troves = SnapshotTrove.objects.filter(address__in=addresses, pool=pool)
+                if not troves:
+                    continue
+                latest_troves = troves.values("trove_id").annotate(latest_trove_data=Max("snapshot_date"))
+                last_troves = troves.filter(snapshot_date__in=[entry["latest_trove_data"] for entry in latest_troves])
+                last_pool_data[pool.name]["troves"].append(last_troves)
+                continue
+
+
             pool_balances = pools_balances.filter(pool=pool)
             pool_rewards = pools_rewards.filter(pool=pool)
             if not pool_balances:
                 continue
-        
+
             latest_balances = pool_balances.values(
                 "token__name"
             ).annotate(  # Group by token__name
@@ -81,19 +109,20 @@ def get_protocols_snapshots(addresses: list, protocol_name: str) -> dict:
             )  # Get the latest snapshot_date for each group
 
             last_balances = pool_balances.filter(
-                snapshot_date__in=[entry["latest_balance_date"] for entry in latest_balances]
+                snapshot_date__in=[
+                    entry["latest_balance_date"] for entry in latest_balances
+                ]
             )
             last_rewards = pool_rewards.filter(
-                snapshot_date__in=[entry["latest_rewards_date"] for entry in latest_rewards]
+                snapshot_date__in=[
+                    entry["latest_rewards_date"] for entry in latest_rewards
+                ]
             )
-            last_pool_data[pool.name] = {
-                "balances": {},
-                "rewards": {},
-            }
+
             for balance in last_balances:
                 current_price = get_last_price(
-                        balance.token.name, balance.snapshot_date.date()
-                    )
+                    balance.token.name, balance.snapshot_date.date()
+                )
                 last_pool_data[pool.name]["balances"][balance.token.symbol] = {
                     "network": balance.pool.protocol.network.name,
                     "quantity": balance.quantity,
@@ -104,9 +133,5 @@ def get_protocols_snapshots(addresses: list, protocol_name: str) -> dict:
                 last_pool_data[pool.name]["rewards"][reward.token.symbol] = {
                     "quantity": reward.quantity,
                 }
-            print(last_pool_data)
-    print(last_pool_data, "last_pool_data")
+
     return last_pool_data
-
-
-
