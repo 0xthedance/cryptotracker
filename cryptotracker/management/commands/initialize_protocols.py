@@ -61,7 +61,6 @@ PROTOCOLS = [
             {
                 "name": "lending_pool",
                 "address": "0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e",
-                
             },
         ],
         "Arbitrum": [
@@ -98,8 +97,7 @@ PROTOCOLS = [
                 "address": "0x1f98431c8ad98523631ae4a59f267346ea31f984",
             },
         ],
-    }
-
+    },
 ]
 
 
@@ -117,7 +115,9 @@ class Command(BaseCommand):
             )
             if created_protocol:
                 self.stdout.write(
-                    self.style.SUCCESS(f"Added protocol {protocol.name} to the database.")
+                    self.style.SUCCESS(
+                        f"Added protocol {protocol.name} to the database."
+                    )
                 )
             else:
                 self.stdout.write(
@@ -126,9 +126,11 @@ class Command(BaseCommand):
 
             # Create ProtocolNetwork entries for each network
             for network in networks:
-                protocol_network, created_protocol_network = ProtocolNetwork.objects.get_or_create(
-                    protocol=protocol,
-                    network=network,
+                protocol_network, created_protocol_network = (
+                    ProtocolNetwork.objects.get_or_create(
+                        protocol=protocol,
+                        network=network,
+                    )
                 )
                 if created_protocol_network:
                     self.stdout.write(
@@ -155,7 +157,6 @@ class Command(BaseCommand):
                 # Create or get the Pools for the protocol and network
                 for pool_data in protocol_data[network.name]:
                     pool, created_pool = Pool.objects.get_or_create(
-                      
                         name=pool_data["name"],
                         protocol=protocol_network,
                         address=pool_data["address"],

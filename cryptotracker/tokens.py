@@ -1,5 +1,6 @@
 from datetime import datetime
 from ape import Contract, networks
+from django.db.models import Sum, F
 
 from cryptotracker.utils import get_last_price
 from cryptotracker.models import (
@@ -7,6 +8,7 @@ from cryptotracker.models import (
     SnapshotAssets,
     CryptocurrencyNetwork,
     Network,
+    SnapshotDate,
 )
 
 
@@ -36,67 +38,57 @@ def fetch_assets(address: Address, snapshot_date) -> None:
                         cryptocurrency=token,
                         address=address,
                         quantity=token_asset / 1e18,
-                        snapshot_date=snapshot_date.date,
+                        snapshot_date=snapshot_date,
                     )
                     asset_snapshot.save()
 
 
 def fetch_aggregated_assets(addresses: list) -> dict:
     """
-    Fetches the aggregated assets of a list of accounts.
+    Fetches the aggregated assets of a list of addresses.
     Args:
-        accounts (list): A list of account objects.
+        addresses (list): A list of Address objects.
     Returns:
         dict: A dictionary containing the aggregated assets and their values.
     """
+    last_snapshot_date = SnapshotDate.objects.first()
+    if not last_snapshot_date:
+        return {}
 
+    # Filter assets for the given addresses and snapshot date
+    last_assets = SnapshotAssets.objects.filter(
+        address__in=addresses, snapshot_date=last_snapshot_date
+    )
+
+    if not last_assets.exists():
+        return {}
+
+    # Aggregate assets by cryptocurrency and network
     aggregated_assets = {}
+    for asset in last_assets:
+        token = asset.cryptocurrency.cryptocurrency
+        network = asset.cryptocurrency.network
+        symbol = token.symbol
 
-    for address in addresses:
-        assets_list = SnapshotAssets.objects.filter(address=address)
-        if not assets_list:
-            continue
+        # Use a combination of symbol and network name as the key
+        key = f"{symbol}_{network.name}"
 
-        for network in Network.objects.all():
-            tokens = CryptocurrencyNetwork.objects.filter(network=network)
-            network_assets = assets_list.filter(cryptocurrency__network=network)
-            if not network_assets:
-                continue
+        # Fetch the current price
+        current_price = get_last_price(token.name, last_snapshot_date.date)
 
-            for token in tokens:
-                token_last_snapshot = (
-                    network_assets.filter(cryptocurrency=token)
-                    .order_by("-snapshot_date")
-                    .first()
-                )
+        # Update or initialize the aggregated data
+        if key not in aggregated_assets:
+            aggregated_assets[key] = {
+                "symbol": symbol,
+                "network": network.name,
+                "amount": 0,
+                "image": token.image,
+                "amount_eur": 0,
+            }
 
-                if not token_last_snapshot:
-                    continue
+        aggregated_assets[key]["amount"] += asset.quantity
+        aggregated_assets[key]["amount_eur"] = (
+            aggregated_assets[key]["amount"] * current_price
+        )
 
-                current_price = get_last_price(
-                    token.cryptocurrency.name, token_last_snapshot.snapshot_date.date()
-                )
-
-                asset = token_last_snapshot
-
-                if asset.cryptocurrency.cryptocurrency.symbol in aggregated_assets:
-                    aggregated_assets[asset.cryptocurrency.cryptocurrency.symbol][
-                        "amount"
-                    ] += asset.quantity
-
-                else:
-                    aggregated_assets[asset.cryptocurrency.cryptocurrency.symbol] = {
-                        "network": network.name,
-                        "amount": asset.quantity,
-                        "image": asset.cryptocurrency.cryptocurrency.image,
-                        "last_snapshot_date": asset.snapshot_date,
-                    }
-                aggregated_assets[asset.cryptocurrency.cryptocurrency.symbol][
-                    "amount_eur"
-                ] = (
-                    aggregated_assets[asset.cryptocurrency.cryptocurrency.symbol][
-                        "amount"
-                    ]
-                    * current_price
-                )
     return aggregated_assets

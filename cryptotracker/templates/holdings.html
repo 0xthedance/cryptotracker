@@ -47,12 +47,12 @@
                             <span class="icon">
                                 <img src="{% static values.image %}" alt="{{ cryptocurrency }} logo" style="width: 24px; height: 24px;">
                             </span>
-                            <span>{{ cryptocurrency }}</span>
+                            <span>{{ values.symbol }}</span>
                         </span>
                     </td>
                     <td>{{ values.network }}</td>
-                    <td style="text-align: right;">{{ values.amount }} {{ cryptocurrency }}</td>
-                    <td style="text-align: right;">{{ values.amount_eur }} €</td>
+                    <td style="text-align: right;">{{ values.amount|floatformat:2|intcomma  }} {{ values.symbol }}</td>
+                    <td style="text-align: right;">{{ values.amount_eur|floatformat:2|intcomma }}€</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -84,8 +84,8 @@
                         <span>ETH</span>
                     </span></td>
                     <td>{{ staking.num_validators }}</td>
-                    <td>{{ staking.balance }}</td>
-                    <td>{{ staking.balance_eur }}</td>
+                    <td>{{ staking.balance|floatformat:2|intcomma }} ETH</td>
+                    <td>{{ staking.balance_eur|floatformat:2|intcomma  }} €</td>
                     <td>+ {{ staking.rewards }}</td>
                 </tr>
             </tbody>
@@ -118,7 +118,7 @@
                     <td>{{ token_values.network }}</td>
                     <td>{{ token }}</td>
                     <td>{{ token_values.quantity|floatformat:2|intcomma }}</td>
-                    <td>{{ token_values.balance_eur|floatformat:2|intcomma }} EUR</td>
+                    <td>{{ token_values.balance_eur|floatformat:2|intcomma }} €</td>
 
                     <td>
                         {% for reward_token, reward_values in values.rewards.items %}
@@ -154,7 +154,7 @@
                 <tr>
                     <td >{{ pool }}</td>
                     <td>{{ trove.trove_id }}</td>
-                    <td>{{ trove.collateral|floatformat:2|intcomma }} {{trove.token.}}
+                    <td>{{ trove.collateral|floatformat:2|intcomma }} {{trove.token.symbol}}
                     </td>
                     <td>{{ trove.debt|floatformat:2|intcomma }} 
                         {% if protocol_name == "Liquity V2" %}BOLD{% elif protocol_name == "Liquity V1" %}LUSD{% endif %}

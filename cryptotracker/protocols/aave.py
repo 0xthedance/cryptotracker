@@ -1,5 +1,5 @@
 from ape import Contract, networks
-from cryptotracker.models import Pool, Cryptocurrency, Network
+from cryptotracker.models import Pool, Cryptocurrency, Network, ProtocolNetwork
 from cryptotracker.protocols.protocols import save_pool_balance
 
 
@@ -11,15 +11,16 @@ def update_aave_lending_pools(address: str, snapshot_date) -> dict:
 
     """
 
-
-    pools = Pool.objects.get(
-        protocol__name="Aave V3",
-        name="lending_pool",
+    protocols = ProtocolNetwork.objects.filter(protocol__name="Aave V3")
+    pools = Pool.objects.filter(
+        protocol__in=protocols,
+        name="lending pool",
     )
 
     for pool in pools:
 
-        network = Network.objects.get(name=pool.protocol.network)
+        network = pool.protocol.network
+        print(network)
 
         with networks.parse_network_choice(network.url_rpc):
             contract = Contract(pool.address)
@@ -43,4 +44,3 @@ def update_aave_lending_pools(address: str, snapshot_date) -> dict:
                     aave_pool_data.currentATokenBalance / 1e18,
                     snapshot_date,
                 )
-

@@ -12,18 +12,14 @@ from celery import group
 from celery.result import GroupResult
 
 from cryptotracker.form import EditAddressForm, AddressForm, AccountForm
-from cryptotracker.models import SnapshotDate, SnapshotETHValidator, Address, Account
+from cryptotracker.models import SnapshotDate, CryptocurrencyPrice, Address, Account
 from cryptotracker.staking import (
     get_aggregated_staking,
-    get_rewards,
-    get_validators_from_withdrawal,
-    get_validators_info,
     get_last_validators,
 )
 
 from cryptotracker.tokens import (
     fetch_aggregated_assets,
-    fetch_assets,
 )
 from cryptotracker.tasks import (
     create_snapshot_date,
@@ -32,12 +28,45 @@ from cryptotracker.tasks import (
     update_cryptocurrency_price,
     update_protocols,
 )
-from cryptotracker.utils import get_total_value, get_last_price
+from cryptotracker.utils import get_last_price
 
 from cryptotracker.protocols.protocols import get_protocols_snapshots
 
 
 # Create your views here.
+
+
+def calculate_total_value(
+    addresses: list,
+) -> float:
+    """
+    Helper function to calculate the total value for a given set of addresses.
+    """
+
+    aggregated_assets = fetch_aggregated_assets(addresses)
+    total_eth_staking = get_aggregated_staking(addresses)
+    total_liquity_v1 = get_protocols_snapshots(addresses, protocol_name="Liquity V1")
+    total_liquity_v2 = get_protocols_snapshots(addresses, protocol_name="Liquity V2")
+    total_aave = get_protocols_snapshots(addresses, protocol_name="Aave V3")
+
+    total_value = 0
+    for asset in aggregated_assets.values():
+        total_value += asset["amount_eur"]
+    if total_eth_staking:
+        total_value += total_eth_staking["balance_eur"]
+    if total_liquity_v1:
+        for pools in total_liquity_v1.values():
+            for asset in pools["balances"].values():
+                total_value += asset["balance_eur"]
+    if total_liquity_v2:
+        for pools in total_liquity_v2.values():
+            for asset in pools["balances"].values():
+                total_value += asset["balance_eur"]
+    if total_aave:
+        for pools in total_aave.values():
+            for asset in pools["balances"].values():
+                total_value += asset["balance_eur"]
+    return total_value
 
 
 def sign_up(request):
@@ -59,6 +88,7 @@ def home(request):
 @login_required()
 def portfolio(request):
     addresses = Address.objects.filter(user=request.user)
+    last_snapshot_date = SnapshotDate.objects.first()
     aggregated_assets = fetch_aggregated_assets(addresses)
     total_eth_staking = get_aggregated_staking(addresses)
     total_liquity_v1 = get_protocols_snapshots(addresses, protocol_name="Liquity V1")
@@ -67,28 +97,8 @@ def portfolio(request):
     print(total_liquity_v2, "total LQUITY V2")
 
     total_aave = get_protocols_snapshots(addresses, protocol_name="Aave V3")
-    portfolio_value = get_total_value(
-        aggregated_assets,
-        total_eth_staking,
-        total_liquity_v1,
-        total_liquity_v2,
-        total_aave,
-    )
+    portfolio_value = calculate_total_value(addresses)
 
-    # Format the amounts for display
-    if aggregated_assets:
-        for key, value in aggregated_assets.items():
-            value["amount"] = f"{value['amount']:,.2f}"
-            value["amount_eur"] = f"{value['amount_eur']:,.2f}"
-    # Format the total ETH staking balance
-    if total_eth_staking:
-        total_eth_staking["balance"] = f"{total_eth_staking['balance']:,.2f}"
-        total_eth_staking["balance_eur"] = f"{total_eth_staking['balance_eur']:,.2f}"
-        total_eth_staking["rewards"] = f"{total_eth_staking['rewards']:,.2f}"
-
-    last_snapshot_date = (
-        SnapshotDate.objects.filter(address__in=addresses).order_by("-date").first()
-    )
     if last_snapshot_date:
         last_snapshot_date = last_snapshot_date.date
     else:
@@ -131,22 +141,7 @@ def accounts(request):
             accounts = [account]
             addresses = Address.objects.filter(account=account)
 
-            aggregated_assets = fetch_aggregated_assets(addresses)
-            total_eth_staking = get_aggregated_staking(addresses)
-            total_liquity_v1 = get_protocols_snapshots(
-                addresses, protocol_name="Liquity V1"
-            )
-            total_liquity_v2 = get_protocols_snapshots(
-                addresses, protocol_name="Liquity V2"
-            )
-            total_aave = get_protocols_snapshots(addresses, protocol_name="Aave V3")
-            account_value = get_total_value(
-                aggregated_assets,
-                total_eth_staking,
-                total_liquity_v1,
-                total_liquity_v2,
-                total_aave,
-            )
+            account_value = calculate_total_value(addresses)
             account_detail = {
                 "account": account,
                 "balance": f"{account_value:,.2f}",
@@ -204,22 +199,7 @@ def addresses(request):
     addresses = Address.objects.filter(user=request.user)
     for address in addresses:
         addresses = [address]
-        aggregated_assets = fetch_aggregated_assets(addresses)
-        total_eth_staking = get_aggregated_staking(addresses)
-        total_liquity_v1 = get_protocols_snapshots(
-            addresses, protocol_name="Liquity V1"
-        )
-        total_liquity_v2 = get_protocols_snapshots(
-            addresses, protocol_name="Liquity V2"
-        )
-        total_aave = get_protocols_snapshots(addresses, protocol_name="Aave V3")
-        address_value = get_total_value(
-            aggregated_assets,
-            total_eth_staking,
-            total_liquity_v1,
-            total_liquity_v2,
-            total_aave,
-        )
+        address_value = calculate_total_value(addresses)
         address_detail = {
             "address": address,
             "balance": f"{address_value:,.2f}",
@@ -260,28 +240,9 @@ def address_detail(request, public_address):
     total_liquity_v1 = get_protocols_snapshots(addresses, protocol_name="Liquity V1")
     total_liquity_v2 = get_protocols_snapshots(addresses, protocol_name="Liquity V2")
     total_aave = get_protocols_snapshots(addresses, protocol_name="Aave V3")
-    portfolio_value = get_total_value(
-        aggregated_assets,
-        total_eth_staking,
-        total_liquity_v1,
-        total_liquity_v2,
-        total_aave,
-    )
+    portfolio_value = calculate_total_value(addresses)
 
-    # Format the amounts for display
-    if aggregated_assets:
-        for key, value in aggregated_assets.items():
-            value["amount"] = f"{value['amount']:,.2f}"
-            value["amount_eur"] = f"{value['amount_eur']:,.2f}"
-    # Format the total ETH staking balance
-    if total_eth_staking:
-        total_eth_staking["balance"] = f"{total_eth_staking['balance']:,.2f}"
-        total_eth_staking["balance_eur"] = f"{total_eth_staking['balance_eur']:,.2f}"
-        total_eth_staking["rewards"] = f"{total_eth_staking['rewards']:,.2f}"
-
-    last_snapshot_date = (
-        SnapshotDate.objects.filter(address__in=addresses).order_by("-date").first()
-    )
+    last_snapshot_date = SnapshotDate.objects.first()
     if last_snapshot_date:
         last_snapshot_date = last_snapshot_date.date
     else:
@@ -316,7 +277,7 @@ def rewards(request):
     validators = get_last_validators(addresses)
     for validator in validators:
         current_price = get_last_price(
-            "ethereum", snapshot_date=validator.snapshot_date.date()
+            "ethereum", snapshot_date=validator.snapshot_date.date
         )
         eth_rewards += validator.rewards * current_price
 
@@ -370,7 +331,7 @@ def refresh(request):
     Trigger the tasks asynchronously with a shared SnapshotDate.
     """
     # Create a SnapshotDate and get its ID
-    snapshot_date_id = create_snapshot_date().get()
+    snapshot_date_id = create_snapshot_date()
 
     # Trigger the tasks asynchronously
     task_group = group(
@@ -435,39 +396,24 @@ def statistics(request):
     """
     addresses = Address.objects.filter(user=request.user)
 
-    # Amount (EUR) per Wallet type
-    hot_wallets = addresses.filter(wallet_type="HOT")
-    hot_wallets_value = sum(
-        get_total_value(
-            fetch_aggregated_assets([wallet]), get_aggregated_staking([wallet])
-        )
-        for wallet in hot_wallets
-    )
+    # Statistic balance per type of wallet
 
-    cold_wallets = addresses.filter(wallet_type="COLD")
-    cold_wallets_value = sum(
-        get_total_value(
-            fetch_aggregated_assets([wallet]), get_aggregated_staking([wallet])
-        )
-        for wallet in cold_wallets
-    )
+    wallet_types = ["HOT", "COLD", "SMART"]
 
-    smart_wallets = addresses.filter(wallet_type="SMART")
-    smart_wallets_value = sum(
-        get_total_value(
-            fetch_aggregated_assets([wallet]), get_aggregated_staking([wallet])
-        )
-        for wallet in smart_wallets
-    )
+    for wallet in wallet_types:
+        calculate_total_value(addresses.filter(wallet_type=wallet))
+
+    wallet_values = {
+        wallet: calculate_total_value(addresses.filter(wallet_type=wallet))
+        for wallet in wallet_types
+    }
 
     # Amount (EUR) per account
     accounts_detail = []
     accounts = Account.objects.filter(user=request.user)
     for account in accounts:
-        addresses = Address.objects.filter(account=account)
-        aggregated_assets = fetch_aggregated_assets(addresses)
-        total_eth_staking = get_aggregated_staking(addresses)
-        account_value = get_total_value(aggregated_assets, total_eth_staking)
+        account_addresses = Address.objects.filter(account=account)
+        account_value = calculate_total_value(account_addresses)
         accounts_detail.append(
             {
                 "account": account,
@@ -476,10 +422,9 @@ def statistics(request):
         )
 
     context = {
-        "hot_wallets_value": hot_wallets_value,
-        "cold_wallets_value": cold_wallets_value,
-        "smart_wallets_value": smart_wallets_value,
+        "hot_wallets_value": wallet_values["HOT"],
+        "cold_wallets_value": wallet_values["COLD"],
+        "smart_wallets_value": wallet_values["SMART"],
         "accounts_detail": accounts_detail,
     }
-
     return render(request, "statistics.html", context)

@@ -1,10 +1,8 @@
 from decimal import Decimal
-from datetime import datetime
 
-from django.db.models import Max
 
 from cryptotracker.utils import APIquery, get_last_price
-from cryptotracker.models import SnapshotETHValidator
+from cryptotracker.models import SnapshotETHValidator, SnapshotDate
 
 BEACONCHAN_API = "https://beaconcha.in/api/v1/validator"
 
@@ -42,23 +40,12 @@ def get_last_validators(addresses: list) -> list[SnapshotETHValidator]:
     Returns:
         list: A list of SnapshotETHValidator objects.
     """
-    last_validators = []
-    validators = SnapshotETHValidator.objects.filter(address__in=addresses)
-    if not validators:
-        return None
-
-    # Group by validator_index and get the latest snapshot_date for each group
-    latest_snapshots = validators.values(
-        "validator_index"
-    ).annotate(  # Group by validator_index
-        latest_snapshot_date=Max("snapshot_date")
-    )  # Get the latest snapshot_date for each group
-
-    # Fetch the full entries for the latest snapshots
-    last_validators = validators.filter(
-        snapshot_date__in=[entry["latest_snapshot_date"] for entry in latest_snapshots]
+    last_snapshot_date = SnapshotDate.objects.first()
+    last_validators = SnapshotETHValidator.objects.filter(
+        address__in=addresses, snapshot_date=last_snapshot_date
     )
-
+    if not last_validators:
+        return None
     return last_validators
 
 
@@ -81,7 +68,7 @@ def get_aggregated_staking(addresses: list) -> dict:
     for validator in last_validators:
         balance += validator.balance
         rewards += validator.rewards
-    current_price = get_last_price("ethereum", last_validators[0].snapshot_date.date())
+    current_price = get_last_price("ethereum", last_validators[0].snapshot_date.date)
     balance_eur = balance * current_price
     total_eth_staking = {
         "num_validators": num_validators,
@@ -117,7 +104,7 @@ def fetch_staking_assets(address: str, snapshot_date):
             status=validator.status,
             activation_epoch=validator.activation_epoch,
             rewards=rewards[str(validator.index)]["performance"],
-            snapshot_date=snapshot_date.date,
+            snapshot_date=snapshot_date,
         )
         validator_snapshot.save()
 

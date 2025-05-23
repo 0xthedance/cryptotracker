@@ -110,38 +110,3 @@ def get_last_price(crypto_id: str, snapshot_date) -> Decimal:
     #    current_price = fetch_historical_price(token.name, date= token_last_snapshot.snapshot_date.date())[-1]["price"]
 
     return current_price.price
-
-
-def get_total_value(
-    aggregated_assets: dict,
-    total_eth_staking: dict,
-    total_liquity_v1: dict,
-    total_liquity_v2: dict,
-    total_aave: dict,
-) -> float:
-    """
-    Calculates the total value of the aggregated assets.
-    Args:
-        aggregated_assets (dict): A dictionary containing the aggregated assets and their values.
-        total_eth_staking (dict): A dictionary containing the total ETH staking information.
-    Returns:
-        float: The total value of the aggregated assets.
-    """
-    total_value = 0
-    for asset in aggregated_assets.values():
-        total_value += asset["amount_eur"]
-    if total_eth_staking:
-        total_value += total_eth_staking["balance_eur"]
-    if total_liquity_v1:
-        for pools in total_liquity_v1.values():
-            for asset in pools["balances"].values():
-                total_value += asset["balance_eur"]
-    if total_liquity_v2:
-        for pools in total_liquity_v2.values():
-            for asset in pools["balances"].values():
-                total_value += asset["balance_eur"]
-    if total_aave:
-        for pools in total_aave.values():
-            for asset in pools["balances"].values():
-                total_value += asset["balance_eur"]
-    return total_value

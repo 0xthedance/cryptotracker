@@ -1,11 +1,11 @@
 from cryptotracker.models import (
-    Network,
+    SnapshotDate,
     Pool,
-    Protocol,
+    ProtocolNetwork,
     PoolBalance,
     PoolRewards,
     Address,
-    SnapshotTrove
+    SnapshotTrove,
 )
 
 from cryptotracker.utils import get_last_price
@@ -28,7 +28,7 @@ def save_pool_balance(address, pool, token, quantity, date):
             pool=pool,
             token=token,
             quantity=quantity,
-            snapshot_date=date.date,
+            snapshot_date=date,
         )
         print(pool_balance)
 
@@ -50,9 +50,9 @@ def save_pool_rewards(address, pool, token, quantity, date):
         pool=pool,
         token=token,
         quantity=quantity,
-        snapshot_date=date.date,
+        snapshot_date=date,
     )
-    print (pool_rewards)
+    print(pool_rewards)
     pool_rewards.save()
 
 
@@ -63,7 +63,8 @@ def get_protocols_snapshots(addresses: list, protocol_name: str) -> dict:
     and returning it as a dictionary.
     """
     last_pool_data = {}
-    protocols = Protocol.objects.filter(name=protocol_name)
+    protocols = ProtocolNetwork.objects.filter(protocol__name=protocol_name)
+    last_snapshot_date = SnapshotDate.objects.first()
     for protocol in protocols:
         pools_balances = PoolBalance.objects.filter(
             address__in=addresses, pool__protocol=protocol
@@ -79,49 +80,30 @@ def get_protocols_snapshots(addresses: list, protocol_name: str) -> dict:
             last_pool_data[pool.name] = {
                 "balances": {},
                 "rewards": {},
-                "troves":[],
+                "troves": [],
             }
 
             if pool.name == "borrow":
-                troves = SnapshotTrove.objects.filter(address__in=addresses, pool=pool)
+                troves = SnapshotTrove.objects.filter(
+                    address__in=addresses, pool=pool, snapshot_date=last_snapshot_date
+                )
                 if not troves:
                     continue
-                latest_troves = troves.values("trove_id").annotate(latest_trove_data=Max("snapshot_date"))
-                last_troves = troves.filter(snapshot_date__in=[entry["latest_trove_data"] for entry in latest_troves])
-                last_pool_data[pool.name]["troves"].append(last_troves)
+                last_pool_data[pool.name]["troves"].append(troves)
                 continue
 
-
-            pool_balances = pools_balances.filter(pool=pool)
-            pool_rewards = pools_rewards.filter(pool=pool)
-            if not pool_balances:
+            last_pool_balances = pools_balances.filter(
+                pool=pool, snapshot_date=last_snapshot_date
+            )
+            last_pool_rewards = pools_rewards.filter(
+                pool=pool, snapshot_date=last_snapshot_date
+            )
+            if not last_pool_balances:
                 continue
 
-            latest_balances = pool_balances.values(
-                "token__name"
-            ).annotate(  # Group by token__name
-                latest_balance_date=Max("snapshot_date")
-            )  # Get the latest snapshot_date for each group
-            latest_rewards = pool_rewards.values(
-                "token__name"
-            ).annotate(  # Group by token__name
-                latest_rewards_date=Max("snapshot_date")
-            )  # Get the latest snapshot_date for each group
-
-            last_balances = pool_balances.filter(
-                snapshot_date__in=[
-                    entry["latest_balance_date"] for entry in latest_balances
-                ]
-            )
-            last_rewards = pool_rewards.filter(
-                snapshot_date__in=[
-                    entry["latest_rewards_date"] for entry in latest_rewards
-                ]
-            )
-
-            for balance in last_balances:
+            for balance in last_pool_balances:
                 current_price = get_last_price(
-                    balance.token.name, balance.snapshot_date.date()
+                    balance.token.name, last_snapshot_date.date
                 )
                 last_pool_data[pool.name]["balances"][balance.token.symbol] = {
                     "network": balance.pool.protocol.network.name,
@@ -129,7 +111,7 @@ def get_protocols_snapshots(addresses: list, protocol_name: str) -> dict:
                     "balance_eur": balance.quantity * current_price,
                     "image": balance.token.image,
                 }
-            for reward in last_rewards:
+            for reward in last_pool_rewards:
                 last_pool_data[pool.name]["rewards"][reward.token.symbol] = {
                     "quantity": reward.quantity,
                 }

@@ -31,7 +31,7 @@ class CryptocurrencyNetwork(models.Model):
 class CryptocurrencyPrice(models.Model):
     cryptocurrency = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)
     price = models.DecimalField(max_digits=20, decimal_places=2)
-    date = models.DateTimeField()
+    date = models.ForeignKey("SnapshotDate", on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.cryptocurrency.name} - {self.price} - {self.date}"
@@ -136,7 +136,9 @@ class SnapshotTrove(models.Model):
     address = models.ForeignKey("Address", on_delete=models.CASCADE)
     pool = models.ForeignKey("Pool", on_delete=models.CASCADE)
     trove_id = models.CharField(max_length=42)
-    token = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)     # WETH, wstETH,rETH
+    token = models.ForeignKey(
+        "Cryptocurrency", on_delete=models.CASCADE
+    )  # WETH, wstETH,rETH
     collateral = models.DecimalField(max_digits=20, decimal_places=5)
     debt = models.DecimalField(max_digits=20, decimal_places=5)
     interest_rate = models.DecimalField(max_digits=5, decimal_places=2)
@@ -148,10 +150,12 @@ class SnapshotTrove(models.Model):
 
 class SnapshotDate(models.Model):
     date = models.DateTimeField()
-    address = models.ForeignKey("Address", on_delete=models.CASCADE)
+
+    class Meta:
+        ordering = ["-date"]  # "Sort by descending date (most recent first)"
 
     def __str__(self):
-        return f"{self.date} - {self.address}"
+        return f"{self.date}"
 
 
 class ProtocolNetwork(models.Model):
