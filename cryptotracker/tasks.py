@@ -38,7 +38,7 @@ def update_cryptocurrency_price(snapshot_id):
         crypto_price = Price(
             cryptocurrency=Cryptocurrency.objects.get(name=crypto),
             price=prices[crypto]["eur"],
-            date=snapshot,
+            snapshot=snapshot,
         )
         crypto_price.save()
         print(f"Price of {crypto} updated to {prices[crypto]['eur']} EUR")
