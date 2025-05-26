@@ -12,7 +12,7 @@ PROTOCOLS = [
                 "image": "cryptotracker/logos/liquity_staking.png",
             },
             {
-                "name": "stability_pool",
+                "name": "stability pool",
                 "address": "0x66017D22b0f8556afDd19FC67041899Eb65a21bb",
                 "image": "cryptotracker/logos/liquity_stability_pool.png",
             },
@@ -38,17 +38,17 @@ PROTOCOLS = [
                 "image": "cryptotracker/logos/liquity_staking_v2.png",
             },
             {
-                "name": "stability_pool_weth",
+                "name": "stability pool weth",
                 "address": "0x5721cbbd64fc7ae3ef44a0a3f9a790a9264cf9bf",
                 "image": "cryptotracker/logos/liquity_stability_pool_weth.png",
             },
             {
-                "name": "stability_pool_lido",
+                "name": "stability pool lido",
                 "address": "0x9502b7c397e9aa22fe9db7ef7daf21cd2aebe56b",
                 "image": "cryptotracker/logos/liquity_stability_pool_lido.png",
             },
             {
-                "name": "stability_pool_reth",
+                "name": "stability pool reth",
                 "address": "0xd442e41019b7f5c4dd78f50dc03726c446148695",
                 "image": "cryptotracker/logos/liquity_stability_pool_reth.png",
             },
@@ -59,31 +59,31 @@ PROTOCOLS = [
         "image": "cryptotracker/logos/aave.png",
         "Ethereum": [
             {
-                "name": "lending_pool",
+                "name": "lending pool",
                 "address": "0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e",
             },
         ],
         "Arbitrum": [
             {
-                "name": "lending_pool",
+                "name": "lending pool",
                 "address": "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
             },
         ],
         "Avalanche": [
             {
-                "name": "lending_pool",
+                "name": "lending pool",
                 "address": "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
             },
         ],
         "Gnosis Chain": [
             {
-                "name": "lending_pool",
+                "name": "lending pool",
                 "address": "0x36616cf17557639614c1cdDb356b1B83fc0B2132",
             },
         ],
         "Base": [
             {
-                "name": "lending_pool",
+                "name": "lending pool",
                 "address": "0xe20fCBdBfFC4Dd138cE8b2E6FBb6CB49777ad64D",
             },
         ],
@@ -93,7 +93,7 @@ PROTOCOLS = [
         "image": "cryptotracker/logos/uniswap.png",
         "Ethereum": [
             {
-                "name": "lending_pool",
+                "name": "lending pool",
                 "address": "0x1f98431c8ad98523631ae4a59f267346ea31f984",
             },
         ],

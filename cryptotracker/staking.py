@@ -231,4 +231,3 @@ def convert_epoch_datetime(epoch):
 
     return datetime.fromtimestamp(activation_time).strftime("%Y-%m-%d")
 
-get_validators_info([1112560])

@@ -10,7 +10,7 @@ def update_aave_lending_pools(address: str, snapshot) -> dict:
         address (str): The address to check.
 
     """
-
+    print("Serching aave pools")
     protocols = ProtocolNetwork.objects.filter(protocol__name="Aave V3")
     pools = Pool.objects.filter(
         protocol_network__in=protocols,

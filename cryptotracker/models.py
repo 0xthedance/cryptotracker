@@ -108,7 +108,7 @@ class Pool(models.Model):
     address = models.CharField(max_length=42)
 
     def __str__(self):
-        return f"{self.name} - {self.protocol}"
+        return f"{self.name} - {self.protocol_network}"
 
 
 class PoolBalance(models.Model):

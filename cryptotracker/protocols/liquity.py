@@ -102,6 +102,7 @@ def get_lqty_stakes(address):
     protocol = ProtocolNetwork.objects.get(
         protocol__name="Liquity V1", network__name="Ethereum"
     )
+    print(protocol)
     pool = Pool.objects.get(
         protocol_network=protocol,
         name="staking",
@@ -143,6 +144,7 @@ def update_lqty_v1_staking(
     Args:
         address (str): The address to check.
     """
+    print("update_lqty_staking")
     lqty_staking = get_lqty_stakes(address)
     if lqty_staking:
         # Save PoolBalance
@@ -183,6 +185,7 @@ def update_lqty_v2_staking(address, snapshot):
     Args:
         address (str): The address to check.
     """
+    print("update_lqty_staking_v2")
 
     proxy_contract = get_proxy_staking_contract(address)
     lqty_staking = get_lqty_stakes(proxy_contract)
@@ -193,7 +196,7 @@ def update_lqty_v2_staking(address, snapshot):
         )
 
         pool = Pool.objects.get(
-            protocol=protocol,
+            protocol_network=protocol,
             name="staking",
         )
         save_pool_balance(
@@ -226,6 +229,7 @@ def update_lqty_stability_pool(address, snapshot):
     Args:
         address (str): The address to check.
     """
+    print("update_lqty_stability_pool_v1")
     protocol = ProtocolNetwork.objects.get(
         protocol__name="Liquity V1", network__name="Ethereum"
     )
@@ -272,6 +276,7 @@ def update_lqty_stability_pool_v2(address, snapshot):
     Args:
         address (str): The address to check.
     """
+    print("update_lqty_stability_pool_v2")
     protocol = ProtocolNetwork.objects.get(
         protocol__name="Liquity V2", network__name="Ethereum"
     )

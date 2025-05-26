@@ -48,6 +48,9 @@ Crypto Tracker is a Django-based web application designed to help users monitor 
    DEBUG=True
    DATABASE_URL=postgres://user:password@localhost:5432/crypto_tracker
    REDIS_URL=redis://localhost:6379/0
+   WEB3_ALCHEMY_PROJECT_ID=
+   ETHERSCAN_API_KEY=
+   API_KEY_THE_GRAPH=
    ```
 
 5. **Apply Migrations**:
@@ -57,7 +60,7 @@ Crypto Tracker is a Django-based web application designed to help users monitor 
 
 6. **Load Initial Data**:
    ```bash
-   python manage.py initialize_protocols
+   python manage.py initialize_db
    ```
 
 7. **Run the Development Server**:
