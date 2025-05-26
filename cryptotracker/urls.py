@@ -2,7 +2,7 @@ from django.urls import include, path
 
 from cryptotracker.models import Account, Address
 
-from cryptotracker.form import AddressForm, AccountForm
+from cryptotracker.form import EditAddressForm, AccountForm
 
 from cryptotracker.views import (
     address_detail,
@@ -49,8 +49,8 @@ urlpatterns = [
         {
             "model": Address,
             "redirect_url": "addresses",
-            "form": AddressForm,
-            "object_type": "Address",
+            "form": EditAddressForm,
+            "object_type": "Address"
         },
         name="edit_address",
     ),
@@ -61,7 +61,8 @@ urlpatterns = [
             "model": Account,
             "redirect_url": "accounts",
             "form": AccountForm,
-            "object_type": "Account",
+            "object_type": "Account"
+
         },
         name="edit_account",
     ),

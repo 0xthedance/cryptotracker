@@ -3,11 +3,12 @@
 
 {% block content %}
 <div class="container">
-    <h1 class="title">Edit {{ object_type }}</h1>
+    <h2 class="title">Edit {{ object_type }}</h2>
+
     <form method="post">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="button is-primary">Save changes</button>
+        {{ form2.as_p }}
+        <button type="submit" class="button is-primary my-6">Save changes</button>
     </form>
 </div>
 {% endblock %}

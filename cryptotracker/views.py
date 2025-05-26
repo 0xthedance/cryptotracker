@@ -296,27 +296,31 @@ def rewards(request):
 
 
 @login_required()
-def edit_object(request, model, object_id, form, redirect_url):
+def edit_object(request, model, id, form, redirect_url, object_type):
     """
     Generic view to edit an object.
     Args:
         model: The model class of the object to edit.
-        object_id: The primary key or unique identifier of the object.
+        id: The primary key or unique identifier of the object.
         form: The form class for editing the object.
         redirect_url: The URL name to redirect to after editing.
     """
-    obj = get_object_or_404(model, pk=object_id)
+    obj = get_object_or_404(model, pk=id)
+    print (obj)
 
     if request.method == "POST":
         form = form(request.POST, instance=obj)
         if form.is_valid():
             form.save()
             return redirect(redirect_url)
+    else:
+        form = form(instance=obj)
 
     # Render the edit page
     context = {
-        "form2": form(instance=obj),
+        "form2": form,
         "object": obj,
+        "object_type": object_type,
     }
     return render(request, "edit_object.html", context)
 
