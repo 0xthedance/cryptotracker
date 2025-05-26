@@ -158,7 +158,7 @@ class Command(BaseCommand):
                 for pool_data in protocol_data[network.name]:
                     pool, created_pool = Pool.objects.get_or_create(
                         name=pool_data["name"],
-                        protocol=protocol_network,
+                        protocol_network=protocol_network,
                         address=pool_data["address"],
                         defaults={},
                     )

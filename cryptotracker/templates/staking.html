@@ -9,6 +9,7 @@
       <thead>
           <tr>
               <th>Index</th>
+              <th>Activation date</th>
               <th>Withdraw Credentials</th>
               <th>Balance</th>
               <th>Status</th>
@@ -19,6 +20,7 @@
         {% for validator in validators %}
           <tr>
               <td>{{ validator.validator_index }}</td>
+              <td>{{ validator.activation_date }}</td>
               <td>{{ validator.address.public_address }}</td>
               <td>{{ validator.balance }}</td>
               <td>{{ validator.status }}</td>

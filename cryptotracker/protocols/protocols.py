@@ -1,11 +1,11 @@
 from cryptotracker.models import (
-    SnapshotDate,
+    Snapshot,
     Pool,
     ProtocolNetwork,
     PoolBalance,
     PoolRewards,
     Address,
-    SnapshotTrove,
+    TroveSnapshot,
 )
 
 from cryptotracker.utils import get_last_price
@@ -28,7 +28,7 @@ def save_pool_balance(address, pool, token, quantity, date):
             pool=pool,
             token=token,
             quantity=quantity,
-            snapshot_date=date,
+            snapshot=date,
         )
         print(pool_balance)
 
@@ -50,7 +50,7 @@ def save_pool_rewards(address, pool, token, quantity, date):
         pool=pool,
         token=token,
         quantity=quantity,
-        snapshot_date=date,
+        snapshot=date,
     )
     print(pool_rewards)
     pool_rewards.save()
@@ -64,18 +64,18 @@ def get_protocols_snapshots(addresses: list, protocol_name: str) -> dict:
     """
     last_pool_data = {}
     protocols = ProtocolNetwork.objects.filter(protocol__name=protocol_name)
-    last_snapshot_date = SnapshotDate.objects.first()
+    last_snapshot = Snapshot.objects.first()
     for protocol in protocols:
         pools_balances = PoolBalance.objects.filter(
-            address__in=addresses, pool__protocol=protocol
+            address__in=addresses, pool__protocol_network=protocol
         )
         pools_rewards = PoolRewards.objects.filter(
-            address__in=addresses, pool__protocol=protocol
+            address__in=addresses, pool__protocol_network=protocol
         )
         if not pools_balances:
             continue
 
-        pools = Pool.objects.filter(protocol=protocol)
+        pools = Pool.objects.filter(protocol_network=protocol)
         for pool in pools:
             last_pool_data[pool.name] = {
                 "balances": {},
@@ -84,8 +84,8 @@ def get_protocols_snapshots(addresses: list, protocol_name: str) -> dict:
             }
 
             if pool.name == "borrow":
-                troves = SnapshotTrove.objects.filter(
-                    address__in=addresses, pool=pool, snapshot_date=last_snapshot_date
+                troves = TroveSnapshot.objects.filter(
+                    trove__address__in=addresses, trove__pool=pool, snapshot=last_snapshot
                 )
                 if not troves:
                     continue
@@ -93,20 +93,20 @@ def get_protocols_snapshots(addresses: list, protocol_name: str) -> dict:
                 continue
 
             last_pool_balances = pools_balances.filter(
-                pool=pool, snapshot_date=last_snapshot_date
+                pool=pool, snapshot=last_snapshot
             )
             last_pool_rewards = pools_rewards.filter(
-                pool=pool, snapshot_date=last_snapshot_date
+                pool=pool, snapshot=last_snapshot
             )
             if not last_pool_balances:
                 continue
 
             for balance in last_pool_balances:
                 current_price = get_last_price(
-                    balance.token.name, last_snapshot_date.date
+                    balance.token.name, last_snapshot.date
                 )
                 last_pool_data[pool.name]["balances"][balance.token.symbol] = {
-                    "network": balance.pool.protocol.network.name,
+                    "network": balance.pool.protocol_network.network.name,
                     "quantity": balance.quantity,
                     "balance_eur": balance.quantity * current_price,
                     "image": balance.token.image,

@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import requests
 
-from cryptotracker.models import CryptocurrencyPrice, Cryptocurrency
+from cryptotracker.models import Price, Cryptocurrency
 
 
 def APIquery(url, params) -> dict:
@@ -93,20 +93,20 @@ def convertWeiIntStr(value: int) -> str:
     return f"{value.normalize():,.3f} ether"
 
 
-def get_last_price(crypto_id: str, snapshot_date) -> Decimal:
+def get_last_price(crypto_id: str, snapshot) -> Decimal:
     """
     Fetches the last price of a cryptocurrency from the database.
     Args:
         crypto_id (str): The ID of the cryptocurrency.
-        snapshot_date (datetime): The date of the snapshot.
+        snapshot (datetime): The date of the snapshot.
     Returns:
         Decimal: The last price of the cryptocurrency.
     """
     cryptocurrency = Cryptocurrency.objects.get(name=crypto_id)
-    current_price = CryptocurrencyPrice.objects.filter(
-        cryptocurrency=cryptocurrency, date__date=snapshot_date
+    current_price = Price.objects.filter(
+        cryptocurrency=cryptocurrency, date__date=snapshot
     ).first()
     # if not current_price:
-    #    current_price = fetch_historical_price(token.name, date= token_last_snapshot.snapshot_date.date())[-1]["price"]
+    #    current_price = fetch_historical_price(token.name, date= token_last_snapshot.snapshot.date())[-1]["price"]
 
     return current_price.price

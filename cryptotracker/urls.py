@@ -68,5 +68,5 @@ urlpatterns = [
     path("waiting_page/", waiting_page, name="waiting_page"),
     path("check_task_status/", check_task_status, name="check_task_status"),
     path("rewards/", rewards, name="rewards"),
-    path("stadistics/", statistics, name="stadistics"),
+    path("statistics/", statistics, name="statistics"),
 ]

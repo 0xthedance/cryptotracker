@@ -4,9 +4,9 @@ from celery.exceptions import TimeoutError
 from cryptotracker.tokens import fetch_assets
 from cryptotracker.models import (
     Address,
-    SnapshotDate,
+    Snapshot,
     Cryptocurrency,
-    CryptocurrencyPrice,
+    Price,
 )
 from cryptotracker.staking import fetch_staking_assets
 from cryptotracker.utils import fetch_cryptocurrency_price
@@ -15,30 +15,30 @@ from cryptotracker.protocols.aave import update_aave_lending_pools
 
 
 @shared_task
-def create_snapshot_date():
+def create_snapshot():
     """
-    Creates a new SnapshotDate entry and returns its ID.
+    Creates a new Snapshot entry and returns its ID.
     """
-    snapshot_date = SnapshotDate.objects.create(date=datetime.now())
-    return snapshot_date.id
+    snapshot = Snapshot.objects.create(date=datetime.now())
+    return snapshot.id
 
 
 @shared_task
-def update_cryptocurrency_price(snapshot_date_id):
+def update_cryptocurrency_price(snapshot_id):
     """
-    Fetches the current price of each cryptocurrency and stores it in the database with the given SnapshotDate.
+    Fetches the current price of each cryptocurrency and stores it in the database with the given Snapshot.
     """
-    print(snapshot_date_id)
-    snapshot_date = SnapshotDate.objects.get(id=snapshot_date_id)
+    print(snapshot_id)
+    snapshot = Snapshot.objects.get(id=snapshot_id)
     cryptocurrencies = Cryptocurrency.objects.all()
     crypto_ids = [crypto.name for crypto in cryptocurrencies]
 
     prices = fetch_cryptocurrency_price(crypto_ids)
     for crypto in crypto_ids:
-        crypto_price = CryptocurrencyPrice(
+        crypto_price = Price(
             cryptocurrency=Cryptocurrency.objects.get(name=crypto),
             price=prices[crypto]["eur"],
-            date=snapshot_date,
+            date=snapshot,
         )
         crypto_price.save()
         print(f"Price of {crypto} updated to {prices[crypto]['eur']} EUR")
@@ -46,18 +46,18 @@ def update_cryptocurrency_price(snapshot_date_id):
 
 
 @shared_task
-def update_assets_database(snapshot_date_id):
+def update_assets_database(snapshot_id):
     """
-    Fetches the assets of a user and stores them in the database with the given SnapshotDate.
+    Fetches the assets of a user and stores them in the database with the given Snapshot.
     """
     print("Updating assets database...")
-    snapshot_date = SnapshotDate.objects.get(id=snapshot_date_id)
+    snapshot = Snapshot.objects.get(id=snapshot_id)
 
     addresses = Address.objects.all()
     for address in addresses:
         try:
             print(f"Fetching assets for address: {address.public_address}")
-            fetch_assets(address, snapshot_date)
+            fetch_assets(address, snapshot)
         except TimeoutError:
             print("TimeoutError: Retrying...")
             continue
@@ -68,16 +68,16 @@ def update_assets_database(snapshot_date_id):
 
 
 @shared_task
-def update_staking_assets(snapshot_date_id):
+def update_staking_assets(snapshot_id):
     """
-    Fetches the staking assets of a user and stores them in the database with the given SnapshotDate.
+    Fetches the staking assets of a user and stores them in the database with the given Snapshot.
     """
-    snapshot_date = SnapshotDate.objects.get(id=snapshot_date_id)
+    snapshot = Snapshot.objects.get(id=snapshot_id)
 
     addresses = Address.objects.all()
     for address in addresses:
         try:
-            fetch_staking_assets(address, snapshot_date)
+            fetch_staking_assets(address, snapshot)
         except TimeoutError:
             print("TimeoutError: Retrying...")
             continue
@@ -88,18 +88,18 @@ def update_staking_assets(snapshot_date_id):
 
 
 @shared_task
-def update_protocols(snapshot_date_id):
+def update_protocols(snapshot_id):
     """
-    Fetches the protocols of a user and stores them in the database with the given SnapshotDate.
+    Fetches the protocols of a user and stores them in the database with the given Snapshot.
     """
-    snapshot_date = SnapshotDate.objects.get(id=snapshot_date_id)
+    snapshot = Snapshot.objects.get(id=snapshot_id)
 
     addresses = Address.objects.all()
     for address in addresses:
         try:
             print(f"Fetching protocols for address: {address.public_address}")
-            update_lqty_pools(address.public_address, snapshot_date)
-            update_aave_lending_pools(address.public_address, snapshot_date)
+            update_lqty_pools(address.public_address, snapshot)
+            update_aave_lending_pools(address.public_address, snapshot)
         except TimeoutError:
             print("TimeoutError: Retrying...")
             continue

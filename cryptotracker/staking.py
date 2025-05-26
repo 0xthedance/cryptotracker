@@ -1,8 +1,9 @@
 from decimal import Decimal
+from datetime import datetime
 
 
 from cryptotracker.utils import APIquery, get_last_price
-from cryptotracker.models import SnapshotETHValidator, SnapshotDate
+from cryptotracker.models import Validator, ValidatorSnapshot, Snapshot
 
 BEACONCHAN_API = "https://beaconcha.in/api/v1/validator"
 
@@ -19,30 +20,30 @@ class ValidatorDetails:
         withdrawal_credentials: str,
         balance: int,
         status: str,
-        activation_epoch: int,
+        activation_date: str,
     ):
         self.index = index
         self.balance = balance
         self.status = status
-        self.activation_epoch = activation_epoch
+        self.activation_date = activation_date
         self.public_key = public_key
         self.withdrawal_credentials = withdrawal_credentials
 
     def __repr__(self):
-        return f"ValidatorDetails(index={self.index}, public_key={self.public_key}, withdrawal_credentials={self.withdrawal_credentials}, balance={self.balance}, status={self.status}, activation_epoch={self.activation_epoch})"
+        return f"ValidatorDetails(index={self.index}, public_key={self.public_key}, withdrawal_credentials={self.withdrawal_credentials}, balance={self.balance}, status={self.status}, activation date{self.activation_date})"
 
 
-def get_last_validators(addresses: list) -> list[SnapshotETHValidator]:
+def get_last_validators(addresses: list) -> list[ValidatorSnapshot]:
     """
     Get the last staking assets for a list of addresses.
     Args:
         addresses (list): A list of Address objects.
     Returns:
-        list: A list of SnapshotETHValidator objects.
+        list: A list of ValidatorSnapshot objects.
     """
-    last_snapshot_date = SnapshotDate.objects.first()
-    last_validators = SnapshotETHValidator.objects.filter(
-        address__in=addresses, snapshot_date=last_snapshot_date
+    last_snapshot = Snapshot.objects.first()
+    last_validators = ValidatorSnapshot.objects.filter(
+        validator__address__in=addresses, snapshot=last_snapshot
     )
     if not last_validators:
         return None
@@ -68,7 +69,7 @@ def get_aggregated_staking(addresses: list) -> dict:
     for validator in last_validators:
         balance += validator.balance
         rewards += validator.rewards
-    current_price = get_last_price("ethereum", last_validators[0].snapshot_date.date)
+    current_price = get_last_price("ethereum", last_validators[0].snapshot.date)
     balance_eur = balance * current_price
     total_eth_staking = {
         "num_validators": num_validators,
@@ -79,32 +80,38 @@ def get_aggregated_staking(addresses: list) -> dict:
     return total_eth_staking
 
 
-def fetch_staking_assets(address: str, snapshot_date):
+def fetch_staking_assets(address: str, snapshot):
     """
     Fetch the staking assets of a user from the Ethereum blockchain and store them in the database.
-    This function uses the Ape library to interact with the Ethereum blockchain and fetch the balance of each token.
-    It also fetches the current price of each token using the fetch_historical_price function from Coingeko app
     Args:
         address (str): The public address of the address.
     """
     validators = get_validators_from_withdrawal(address.public_address)
 
-    if validators == []:
+    if not validators:
         return
+
     validator_details = get_validators_info(validators)
     rewards = get_rewards(validators)
-    for validator in validator_details:
-        # Save the validator details to the database
 
-        validator_snapshot = SnapshotETHValidator(
+    for validator in validator_details:
+        # Create or get the Validator object
+        validator_obj, created = Validator.objects.get_or_create(
             address=address,
             validator_index=validator.index,
-            public_key=validator.public_key,
+            defaults={
+                "public_key": validator.public_key,
+                "activation_date": validator.activation_date,
+            },
+        )
+
+        # Save the validator snapshot
+        validator_snapshot = ValidatorSnapshot(
+            validator=validator_obj,
             balance=validator.balance,
             status=validator.status,
-            activation_epoch=validator.activation_epoch,
             rewards=rewards[str(validator.index)]["performance"],
-            snapshot_date=snapshot_date,
+            snapshot=snapshot,
         )
         validator_snapshot.save()
 
@@ -164,12 +171,13 @@ def get_validators_info(validator_indexs: list[str]) -> list[ValidatorDetails]:
         public_key = validator["pubkey"]
         withdrawal_credentials = validator["withdrawalcredentials"]
         balance = validator["balance"] / 1e9  # Convert Gwei to Decimal
-        activation_epoch = validator["activationepoch"]
+        activation_date = convert_epoch_datetime(validator["activationepoch"])
         status = validator["status"]
 
         validator_details = ValidatorDetails(
-            index, public_key, withdrawal_credentials, balance, status, activation_epoch
+            index, public_key, withdrawal_credentials, balance, status, activation_date
         )
+        print(validator_details)
         validator_details_list.append(validator_details)
 
     return validator_details_list
@@ -213,3 +221,14 @@ def get_rewards(validator_indexs: list[int]) -> list[Decimal]:
                 + rewards[index]["consensusperformance"]
             )
     return rewards
+
+
+def convert_epoch_datetime(epoch):
+    # Helper to convert epoch to datetime (assume 12 seconds per slot, 32 slots per epoch)
+    seconds_since_genesis = epoch * 32 * 12
+    genesis_time = datetime(2020, 12, 1, 12, 0, 23)  # Beacon Chain genesis time
+    activation_time = genesis_time.timestamp() + seconds_since_genesis
+
+    return datetime.fromtimestamp(activation_time).strftime("%Y-%m-%d")
+
+get_validators_info([1112560])

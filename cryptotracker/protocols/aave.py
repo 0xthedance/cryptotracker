@@ -3,7 +3,7 @@ from cryptotracker.models import Pool, Cryptocurrency, Network, ProtocolNetwork
 from cryptotracker.protocols.protocols import save_pool_balance
 
 
-def update_aave_lending_pools(address: str, snapshot_date) -> dict:
+def update_aave_lending_pools(address: str, snapshot) -> dict:
     """
     Save the AAVE V3 lending pool participation of a given address (acting as a supplier only).
     Args:
@@ -13,13 +13,13 @@ def update_aave_lending_pools(address: str, snapshot_date) -> dict:
 
     protocols = ProtocolNetwork.objects.filter(protocol__name="Aave V3")
     pools = Pool.objects.filter(
-        protocol__in=protocols,
+        protocol_network__in=protocols,
         name="lending pool",
     )
 
     for pool in pools:
 
-        network = pool.protocol.network
+        network = pool.protocol_network.network
         print(network)
 
         with networks.parse_network_choice(network.url_rpc):
@@ -42,5 +42,5 @@ def update_aave_lending_pools(address: str, snapshot_date) -> dict:
                     pool,
                     Cryptocurrency.objects.get(symbol=token[0]),
                     aave_pool_data.currentATokenBalance / 1e18,
-                    snapshot_date,
+                    snapshot,
                 )

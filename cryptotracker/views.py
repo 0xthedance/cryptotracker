@@ -12,7 +12,7 @@ from celery import group
 from celery.result import GroupResult
 
 from cryptotracker.form import EditAddressForm, AddressForm, AccountForm
-from cryptotracker.models import SnapshotDate, CryptocurrencyPrice, Address, Account
+from cryptotracker.models import Snapshot, Price, Address, Account, ValidatorSnapshot
 from cryptotracker.staking import (
     get_aggregated_staking,
     get_last_validators,
@@ -22,7 +22,7 @@ from cryptotracker.tokens import (
     fetch_aggregated_assets,
 )
 from cryptotracker.tasks import (
-    create_snapshot_date,
+    create_snapshot,
     update_assets_database,
     update_staking_assets,
     update_cryptocurrency_price,
@@ -88,7 +88,7 @@ def home(request):
 @login_required()
 def portfolio(request):
     addresses = Address.objects.filter(user=request.user)
-    last_snapshot_date = SnapshotDate.objects.first()
+    last_snapshot = Snapshot.objects.first()
     aggregated_assets = fetch_aggregated_assets(addresses)
     total_eth_staking = get_aggregated_staking(addresses)
     total_liquity_v1 = get_protocols_snapshots(addresses, protocol_name="Liquity V1")
@@ -99,10 +99,10 @@ def portfolio(request):
     total_aave = get_protocols_snapshots(addresses, protocol_name="Aave V3")
     portfolio_value = calculate_total_value(addresses)
 
-    if last_snapshot_date:
-        last_snapshot_date = last_snapshot_date.date
+    if last_snapshot:
+        last_snapshot = last_snapshot.date
     else:
-        last_snapshot_date = None
+        last_snapshot = None
     context = {
         "user": request.user,
         "assets": aggregated_assets,
@@ -114,7 +114,7 @@ def portfolio(request):
         },
         "addresses": addresses,
         "portfolio_value": f"{portfolio_value:,.2f}",
-        "last_snapshot_date": last_snapshot_date,
+        "last_snapshot": last_snapshot,
     }
 
     return render(request, "portfolio.html", context)
@@ -242,11 +242,11 @@ def address_detail(request, public_address):
     total_aave = get_protocols_snapshots(addresses, protocol_name="Aave V3")
     portfolio_value = calculate_total_value(addresses)
 
-    last_snapshot_date = SnapshotDate.objects.first()
-    if last_snapshot_date:
-        last_snapshot_date = last_snapshot_date.date
+    last_snapshot = Snapshot.objects.first()
+    if last_snapshot:
+        last_snapshot = last_snapshot.date
     else:
-        last_snapshot_date = None
+        last_snapshot = None
     context = {
         "user": request.user,
         "assets": aggregated_assets,
@@ -258,7 +258,7 @@ def address_detail(request, public_address):
         },
         "addresses": addresses,
         "portfolio_value": f"{portfolio_value:,.2f}",
-        "last_snapshot_date": last_snapshot_date,
+        "last_snapshot": last_snapshot,
         "address": address,
     }
     return render(request, "address_detail.html", context)
@@ -277,7 +277,7 @@ def rewards(request):
     validators = get_last_validators(addresses)
     for validator in validators:
         current_price = get_last_price(
-            "ethereum", snapshot_date=validator.snapshot_date.date
+            "ethereum", snapshot=validator.snapshot.date
         )
         eth_rewards += validator.rewards * current_price
 
@@ -328,17 +328,17 @@ def logout_view(request):
 @login_required()
 def refresh(request):
     """
-    Trigger the tasks asynchronously with a shared SnapshotDate.
+    Trigger the tasks asynchronously with a shared Snapshot.
     """
-    # Create a SnapshotDate and get its ID
-    snapshot_date_id = create_snapshot_date()
+    # Create a Snapshot and get its ID
+    snapshot_id = create_snapshot()
 
     # Trigger the tasks asynchronously
     task_group = group(
-        update_cryptocurrency_price.s(snapshot_date_id),
-        update_assets_database.s(snapshot_date_id),
-        update_staking_assets.s(snapshot_date_id),
-        update_protocols.s(snapshot_date_id),
+        update_cryptocurrency_price.s(snapshot_id),
+        update_assets_database.s(snapshot_id),
+        update_staking_assets.s(snapshot_id),
+        update_protocols.s(snapshot_id),
     )
 
     # Execute the task group asynchronously

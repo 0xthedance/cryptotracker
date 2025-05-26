@@ -28,13 +28,13 @@ class CryptocurrencyNetwork(models.Model):
         return f"{self.cryptocurrency.name} on {self.network.name} ({self.address})"
 
 
-class CryptocurrencyPrice(models.Model):
+class Price(models.Model):
     cryptocurrency = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)
     price = models.DecimalField(max_digits=20, decimal_places=2)
-    date = models.ForeignKey("SnapshotDate", on_delete=models.CASCADE)
+    snapshot = models.ForeignKey("Snapshot", on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.cryptocurrency.name} - {self.price} - {self.date}"
+        return f"{self.cryptocurrency.name} - {self.price} - {self.snapshot}"
 
 
 class Account(models.Model):
@@ -44,23 +44,18 @@ class Account(models.Model):
     def __str__(self):
         return f"{self.name}"
 
+class WalletType(models.Model):
+
+    name = models.CharField(max_length=20, unique=True)
+
+    def __str__(self):
+        return self.name
 
 class Address(models.Model):
-    COLD = "COLD"
-    HOT = "HOT"
-    SMART = "SMART"
-
-    WALLET_TYPE_CHOICES = [
-        (COLD, "Cold"),
-        (HOT, "Hot"),
-        (SMART, "Smart"),
-    ]
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     public_address = models.CharField(max_length=42, unique=True)
     account = models.ForeignKey("Account", on_delete=models.CASCADE)
-    wallet_type = models.CharField(
-        max_length=20, choices=WALLET_TYPE_CHOICES, default=HOT
-    )
+    wallet_type = models.ForeignKey(WalletType, on_delete=models.CASCADE)
     name = models.CharField(max_length=20, blank=True, null=True)
 
     def __str__(self):
@@ -73,24 +68,30 @@ class SnapshotAssets(models.Model):
     )
     address = models.ForeignKey("Address", on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=20, decimal_places=5)
-    snapshot_date = models.ForeignKey("SnapshotDate", on_delete=models.CASCADE)
+    snapshot = models.ForeignKey("Snapshot", on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.cryptocurrency.name} - {self.quantity} - {self.snapshot_date}"
+        return f"{self.cryptocurrency.name} - {self.quantity} - {self.snapshot}"
 
-
-class SnapshotETHValidator(models.Model):
+class Validator(models.Model):
     address = models.ForeignKey("Address", on_delete=models.CASCADE)
     validator_index = models.IntegerField()
     public_key = models.CharField(max_length=128)
-    balance = models.DecimalField(max_digits=20, decimal_places=5)
-    status = models.CharField(max_length=20)
-    activation_epoch = models.CharField()
-    rewards = models.DecimalField(max_digits=20, decimal_places=5)
-    snapshot_date = models.ForeignKey("SnapshotDate", on_delete=models.CASCADE)
+    activation_date = models.CharField()
 
     def __str__(self):
-        return f"{self.validator_index} - {self.balance}"
+        return f"Validator {self.validator_index} - {self.address}"
+
+
+class ValidatorSnapshot(models.Model):
+    validator = models.ForeignKey("Validator", on_delete=models.CASCADE)
+    balance = models.DecimalField(max_digits=20, decimal_places=5)
+    status = models.CharField(max_length=20)
+    rewards = models.DecimalField(max_digits=20, decimal_places=5)
+    snapshot = models.ForeignKey("Snapshot", on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.validator.validator_index} - {self.balance}"
 
 
 class Protocol(models.Model):
@@ -103,7 +104,7 @@ class Protocol(models.Model):
 
 class Pool(models.Model):
     name = models.CharField(max_length=20)
-    protocol = models.ForeignKey("ProtocolNetwork", on_delete=models.CASCADE)
+    protocol_network = models.ForeignKey("ProtocolNetwork", on_delete=models.CASCADE)
     address = models.CharField(max_length=42)
 
     def __str__(self):
@@ -115,10 +116,10 @@ class PoolBalance(models.Model):
     pool = models.ForeignKey("Pool", on_delete=models.CASCADE)
     token = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=20, decimal_places=5)
-    snapshot_date = models.ForeignKey("SnapshotDate", on_delete=models.CASCADE)
+    snapshot = models.ForeignKey("Snapshot", on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.pool.name} - {self.quantity} - {self.snapshot_date}"
+        return f"{self.pool.name} - {self.quantity} - {self.snapshot}"
 
 
 class PoolRewards(models.Model):
@@ -126,29 +127,33 @@ class PoolRewards(models.Model):
     pool = models.ForeignKey("Pool", on_delete=models.CASCADE)
     token = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=20, decimal_places=5)
-    snapshot_date = models.ForeignKey("SnapshotDate", on_delete=models.CASCADE)
+    snapshot = models.ForeignKey("Snapshot", on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.pool.name} - {self.quantity} - {self.snapshot_date}"
+        return f"{self.pool.name} - {self.quantity} - {self.snapshot}"
 
 
-class SnapshotTrove(models.Model):
+class Trove(models.Model):
     address = models.ForeignKey("Address", on_delete=models.CASCADE)
     pool = models.ForeignKey("Pool", on_delete=models.CASCADE)
     trove_id = models.CharField(max_length=42)
     token = models.ForeignKey(
         "Cryptocurrency", on_delete=models.CASCADE
     )  # WETH, wstETH,rETH
+
+
+class TroveSnapshot(models.Model):
+    trove = models.ForeignKey("Trove", on_delete=models.CASCADE)
     collateral = models.DecimalField(max_digits=20, decimal_places=5)
     debt = models.DecimalField(max_digits=20, decimal_places=5)
     interest_rate = models.DecimalField(max_digits=5, decimal_places=2)
-    snapshot_date = models.ForeignKey("SnapshotDate", on_delete=models.CASCADE)
+    snapshot = models.ForeignKey("Snapshot", on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.pool.name} - {self.collateral} - {self.snapshot_date}"
+        return f"{self.trove.pool.name} - {self.collateral} - {self.snapshot}"
 
 
-class SnapshotDate(models.Model):
+class Snapshot(models.Model):
     date = models.DateTimeField()
 
     class Meta:

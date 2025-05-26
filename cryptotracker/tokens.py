@@ -8,11 +8,11 @@ from cryptotracker.models import (
     SnapshotAssets,
     CryptocurrencyNetwork,
     Network,
-    SnapshotDate,
+    Snapshot,
 )
 
 
-def fetch_assets(address: Address, snapshot_date) -> None:
+def fetch_assets(address: Address, snapshot) -> None:
     """
     Fetches the assets of a user from the Ethereum blockchain and stores them in the database.
     This function uses the Ape library to interact with the Ethereum blockchain and fetch the balance of each token.
@@ -38,12 +38,12 @@ def fetch_assets(address: Address, snapshot_date) -> None:
                         cryptocurrency=token,
                         address=address,
                         quantity=token_asset / 1e18,
-                        snapshot_date=snapshot_date,
+                        snapshot=snapshot,
                     )
                     asset_snapshot.save()
 
 
-def fetch_aggregated_assets(addresses: list) -> dict:
+def fetch_aggregated_assets(addresses: list[Address]) -> dict:
     """
     Fetches the aggregated assets of a list of addresses.
     Args:
@@ -51,13 +51,13 @@ def fetch_aggregated_assets(addresses: list) -> dict:
     Returns:
         dict: A dictionary containing the aggregated assets and their values.
     """
-    last_snapshot_date = SnapshotDate.objects.first()
-    if not last_snapshot_date:
+    last_snapshot = Snapshot.objects.first()
+    if not last_snapshot:
         return {}
 
     # Filter assets for the given addresses and snapshot date
     last_assets = SnapshotAssets.objects.filter(
-        address__in=addresses, snapshot_date=last_snapshot_date
+        address__in=addresses, snapshot=last_snapshot
     )
 
     if not last_assets.exists():
@@ -74,7 +74,7 @@ def fetch_aggregated_assets(addresses: list) -> dict:
         key = f"{symbol}_{network.name}"
 
         # Fetch the current price
-        current_price = get_last_price(token.name, last_snapshot_date.date)
+        current_price = get_last_price(token.name, last_snapshot.date)
 
         # Update or initialize the aggregated data
         if key not in aggregated_assets:
