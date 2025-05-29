@@ -1,4 +1,4 @@
-name: CD for deploy the cryptotracker to a home server
+name: CD to build and push thedance/cryptotracker docker image
 
 on:
   push:

@@ -17,11 +17,10 @@ Crypto Tracker is a Django-based web application designed to help users monitor 
 
 - Python 3.8+
 - Django 4.0+
-- PostgreSQL (or any preferred database)
 - Redis (for Celery task queue)
 - APE framework (for blockchain interactions)
 
-### Setup Instructions
+### Common Setup Steps
 
 1. **Clone the Repository**:
    ```bash
@@ -29,65 +28,78 @@ Crypto Tracker is a Django-based web application designed to help users monitor 
    cd crypto_tracker
    ```
 
-2. **Create a Virtual Environment**:
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
-
-3. **Install Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Configure Environment Variables**:
+2. **Create a `.env` File**:
    Create a `.env` file in the project root and add the following:
    ```
-   SECRET_KEY=your_secret_key
-   DEBUG=True
-   DATABASE_URL=postgres://user:password@localhost:5432/crypto_tracker
-   REDIS_URL=redis://localhost:6379/0
+   DJANGO_SECRET_KEY=your_secret_key
    WEB3_ALCHEMY_PROJECT_ID=your_alchemy_project_id
    ETHERSCAN_API_KEY=your_etherscan_api_key
    API_KEY_THE_GRAPH=your_graph_api_key
    COINGECKO_API_KEY=your_coingecko_api_key
-   AWS_ACCESS_KEY_ID=your_aws_access_key_id
-   AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
-   AWS_REGION=your_aws_region
-   AWS_ECS_CLUSTER_NAME=your_aws_ecs_cluster_name
-   AWS_ECS_SERVICE_NAME=your_aws_ecs_service_name
    ```
 
    - **WEB3_ALCHEMY_PROJECT_ID**: Required for blockchain interactions via Alchemy.
    - **ETHERSCAN_API_KEY**: Used for fetching blockchain data from Etherscan.
    - **API_KEY_THE_GRAPH**: Required for querying data from The Graph.
    - **COINGECKO_API_KEY**: Used for fetching cryptocurrency price data.
-   - **AWS_ACCESS_KEY_ID** and **AWS_SECRET_ACCESS_KEY**: Required for AWS ECS deployment.
-   - **AWS_REGION**: Specifies the AWS region for ECS deployment.
-   - **AWS_ECS_CLUSTER_NAME** and **AWS_ECS_SERVICE_NAME**: Used to identify the ECS cluster and service for deployment.
 
-5. **Apply Migrations**:
+### Run Locally
+
+1. **Create a Virtual Environment**:
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+2. **Install Dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Apply Migrations**:
    ```bash
    python manage.py migrate
    ```
 
-6. **Load Initial Data**:
+4. **Load Initial Data**:
    ```bash
    python manage.py initialize_db
    ```
 
-7. **Run the Development Server**:
+5. **Run the Development Server**:
    ```bash
    python manage.py runserver
    ```
 
-8. **Start Celery Worker**:
+6. **Start Celery Worker**:
    ```bash
    celery -A crypto_tracker worker --loglevel=info
    ```
 
-9. **Access the Application**:
+7. **Access the Application**:
    Open your browser and navigate to `http://127.0.0.1:8000`.
+
+### Run in Production Using Docker Compose
+
+1. **Build and Run the Application**:
+   Use `docker-compose.yml` to build and run the application:
+   ```bash
+   docker-compose up --build
+   ```
+
+2. **Additional Environment Variables for Production**:
+   Modify  `django_production_env` file with your preferences:
+   ```
+   REDIS_URL=redis://redis:6379/0
+   DJANGO_ALLOWED_HOSTS=your_production_domain
+   DJANGO_DEBUG=False
+   ```
+   - **REDIS_URL**: Specifies the Redis connection string for Celery.
+   - **DJANGO_ALLOWED_HOSTS**: Specifies the allowed hosts for the production environment.
+   - **DJANGO_DEBUG**: Set to `False` for production.
+
+3. **Access the Application**:
+   Open your browser and navigate to `http://$IP_HOST:8000`.
 
 ## Usage
 
@@ -99,29 +111,13 @@ Crypto Tracker is a Django-based web application designed to help users monitor 
 
 ## Technologies Used
 
-- **Backend**: Django, Celery, PostgreSQL
+- **Backend**: Django, Celery, Celery Beat
 - **Blockchain**: Web3.py, Ape Framework
 - **Frontend**: HTML, CSS, JavaScript (Django templates and React)
 - **Task Queue**: Redis + Celery
-
-## Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository.
-2. Create a new branch for your feature or bugfix.
-3. Commit your changes and push the branch.
-4. Submit a pull request.
 
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
-
-- [Django](https://www.djangoproject.com/)
-- [Web3.py](https://web3py.readthedocs.io/)
-- [Ape Framework](https://www.apeworx.io/)
-- [The Graph](https://thegraph.com/)
-- [CoinGeko] (https://)
 
