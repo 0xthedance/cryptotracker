@@ -1,4 +1,3 @@
-
 # Crypto Tracker
 
 Crypto Tracker is a Django-based web application designed to help users monitor and manage their cryptocurrency portfolios. It provides insights into assets, staking, protocol participation, and rewards across multiple networks and protocols.
@@ -48,10 +47,24 @@ Crypto Tracker is a Django-based web application designed to help users monitor 
    DEBUG=True
    DATABASE_URL=postgres://user:password@localhost:5432/crypto_tracker
    REDIS_URL=redis://localhost:6379/0
-   WEB3_ALCHEMY_PROJECT_ID=
-   ETHERSCAN_API_KEY=
-   API_KEY_THE_GRAPH=
+   WEB3_ALCHEMY_PROJECT_ID=your_alchemy_project_id
+   ETHERSCAN_API_KEY=your_etherscan_api_key
+   API_KEY_THE_GRAPH=your_graph_api_key
+   COINGECKO_API_KEY=your_coingecko_api_key
+   AWS_ACCESS_KEY_ID=your_aws_access_key_id
+   AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+   AWS_REGION=your_aws_region
+   AWS_ECS_CLUSTER_NAME=your_aws_ecs_cluster_name
+   AWS_ECS_SERVICE_NAME=your_aws_ecs_service_name
    ```
+
+   - **WEB3_ALCHEMY_PROJECT_ID**: Required for blockchain interactions via Alchemy.
+   - **ETHERSCAN_API_KEY**: Used for fetching blockchain data from Etherscan.
+   - **API_KEY_THE_GRAPH**: Required for querying data from The Graph.
+   - **COINGECKO_API_KEY**: Used for fetching cryptocurrency price data.
+   - **AWS_ACCESS_KEY_ID** and **AWS_SECRET_ACCESS_KEY**: Required for AWS ECS deployment.
+   - **AWS_REGION**: Specifies the AWS region for ECS deployment.
+   - **AWS_ECS_CLUSTER_NAME** and **AWS_ECS_SERVICE_NAME**: Used to identify the ECS cluster and service for deployment.
 
 5. **Apply Migrations**:
    ```bash
@@ -83,8 +96,6 @@ Crypto Tracker is a Django-based web application designed to help users monitor 
 3. **View Portfolio**: Monitor your assets, staking balances, and protocol participation.
 4. **Refresh Data**: Use the "Refresh" button to fetch the latest data.
 5. **Explore Statistics**: View detailed statistics for wallets and accounts.
-
-
 
 ## Technologies Used
 

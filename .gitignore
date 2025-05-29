@@ -1,3 +1,4 @@
+#virtual emvironment
 .venv_crypto/
 # Django stuff:
 *.log
@@ -6,3 +7,5 @@ db.sqlite3
 db.sqlite3-journal
 # Byte-compiled / optimized / DLL files
 __pycache__/
+#environmental variables 
+.env

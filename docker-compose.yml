@@ -1,0 +1,36 @@
+
+services:
+  web:
+    build: .
+    image: thedance/cryptotracker:latest
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    env_file:
+      - ./django_production_env
+
+  celery:
+    image: thedance/cryptotracker:latest
+    command: celery -A dcp worker 
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+    env_file:
+      - ./django_production_env
+
+  celery-beat:
+    image: thedance/cryptotracker:latest
+    command: celery -A dcp beat --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+    env_file:
+      - ./django_production_env
+
+  redis:
+    image: redis:7

@@ -1,0 +1,86 @@
+name: CI for the cryptotracker
+
+on:
+  push
+
+jobs:
+  test:
+    name: Test Matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9, 3.10, 3.11]
+    services:
+      redis:
+        image: redis:6.2
+        ports:
+          - 6379:6379
+        options:  >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+      
+
+      - name: Run migrations
+        run: |
+          source venv/bin/activate
+          python manage.py migrate
+      
+      - name: Start Celery worker in background
+        run: |
+          celery -A myproject worker --loglevel=info --detach
+
+      - name: Start Celery beat in background
+        run: |
+          celery -A myproject beat --loglevel=info --detach
+
+      - name: Run tests
+        run: |
+          source venv/bin/activate
+          python manage.py test
+        env:
+          API_KEY_THE_GRAPH: ${{ secrets.API_KEY_THE_GRAPH}}
+          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY}}
+          WEB3_ALCHEMY_PROJECT_ID: ${{ secrets.WEB3_ALCHEMY_PROJECT_ID}}
+
+  lint:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install linters
+        run: |
+          pip install  mypy ruff
+
+      - name: Run mypy
+        run: mypy .
+
+      - name: Run ruff
+        run: ruff check .
+
+
+
+
