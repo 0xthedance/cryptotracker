@@ -11,6 +11,8 @@ services:
       - redis
     env_file:
       - ./django_production_env
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
 
   celery:
     image: thedance/cryptotracker:latest
@@ -21,6 +23,8 @@ services:
       - redis
     env_file:
       - ./django_production_env
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
 
   celery-beat:
     image: thedance/cryptotracker:latest
@@ -31,6 +35,17 @@ services:
       - redis
     env_file:
       - ./django_production_env
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
 
   redis:
     image: redis:7
+
+#automatic update tool for running Docker containers
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 1000 --cleanup --label-enable
+    restart: unless-stopped
