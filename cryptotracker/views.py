@@ -12,7 +12,7 @@ from celery import group
 from celery.result import GroupResult
 
 from cryptotracker.form import EditAddressForm, AddressForm, AccountForm
-from cryptotracker.models import Snapshot, Price, Address, Account, ValidatorSnapshot
+from cryptotracker.models import Snapshot, Price, Address, Account, WalletType
 from cryptotracker.staking import (
     get_aggregated_staking,
     get_last_validators,
@@ -275,13 +275,17 @@ def rewards(request):
     # Get ETH Staking rewards
     eth_rewards = 0
     validators = get_last_validators(addresses)
-    for validator in validators:
-        current_price = get_last_price(
-            "ethereum", snapshot=validator.snapshot.date
-        )
-        eth_rewards += validator.rewards * current_price
+
+    if validators:
+
+        for validator in validators:
+            current_price = get_last_price(
+                "ethereum", snapshot=validator.snapshot.date
+            )
+            eth_rewards += validator.rewards * current_price
 
     # Get protocol rewards
+
 
     rewards = {
         "ETH": f"{eth_rewards:,.2f}",
@@ -404,11 +408,8 @@ def statistics(request):
 
     wallet_types = ["HOT", "COLD", "SMART"]
 
-    for wallet in wallet_types:
-        calculate_total_value(addresses.filter(wallet_type=wallet))
-
     wallet_values = {
-        wallet: calculate_total_value(addresses.filter(wallet_type=wallet))
+        wallet: calculate_total_value(addresses.filter(wallet_type=WalletType.objects.get(name=wallet)))
         for wallet in wallet_types
     }
 

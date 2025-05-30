@@ -26,9 +26,16 @@ ENV WEB3_ALCHEMY_PROJECT_ID=${WEB3_ALCHEMY_PROJECT_ID}
 # Copy the application code into the container
 COPY . .
 
+# Initialize the database
+
+RUN python manage.py initialize_db
+
 # Make migrations
 
 RUN python manage.py makemigrations
+
+RUN python manage.py migrate
+
 
 # Alternative: Set environment variables using DJANGO_SETTINGS_MODULE variable. We are using env_file in docker compose
 #ENV DJANGO_SETTINGS_MODULE=cryptotracker.settings.production

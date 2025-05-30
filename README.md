@@ -56,14 +56,14 @@ Crypto Tracker is a Django-based web application designed to help users monitor 
    pip install -r requirements.txt
    ```
 
-3. **Apply Migrations**:
-   ```bash
-   python manage.py migrate
-   ```
-
 4. **Load Initial Data**:
    ```bash
    python manage.py initialize_db
+   ```
+3. **Apply Migrations**:
+   ```bash
+   python manage.py makemigrations
+   python manage.py migrate
    ```
 
 5. **Run the Development Server**:
@@ -84,7 +84,7 @@ Crypto Tracker is a Django-based web application designed to help users monitor 
 1. **Build and Run the Application**:
    Use `docker-compose.yml` to build and run the application:
    ```bash
-   docker-compose up --build
+   docker-compose up
    ```
 
 2. **Additional Environment Variables for Production**:

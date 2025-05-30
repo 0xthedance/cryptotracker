@@ -39,7 +39,6 @@ jobs:
 
       - name: Run migrations
         run: |
-          source venv/bin/activate
           python manage.py migrate
       
       - name: Start Celery worker in background
