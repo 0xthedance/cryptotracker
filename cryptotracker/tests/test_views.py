@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from cryptotracker.models import Account, Address, WalletType
 from django.core.management import call_command
 
+
 class CryptoTrackerViewTests(TestCase):
 
     @classmethod
@@ -12,7 +13,9 @@ class CryptoTrackerViewTests(TestCase):
 
     def setUp(self):
         # Create a test user
-        self.user = User.objects.create_user(username="testuser", password="testpassword")
+        self.user = User.objects.create_user(
+            username="testuser", password="testpassword"
+        )
         self.client.login(username="testuser", password="testpassword")
 
         # Create wallet types
@@ -57,14 +60,16 @@ class CryptoTrackerViewTests(TestCase):
             },
         )
         print(response)
-        self.assertEqual(response.status_code, 302)  # Redirect after successful addition
+        self.assertEqual(
+            response.status_code, 302
+        )  # Redirect after successful addition
         self.assertTrue(Address.objects.filter(name="New Address").exists())
 
     def test_delete_address_view(self):
-        response = self.client.post(
-            reverse("delete_address", args=[self.address.id])
-        )
-        self.assertEqual(response.status_code, 302)  # Redirect after successful deletion
+        response = self.client.post(reverse("delete_address", args=[self.address.id]))
+        self.assertEqual(
+            response.status_code, 302
+        )  # Redirect after successful deletion
         self.assertFalse(Address.objects.filter(id=self.address.id).exists())
 
     def test_accounts_view(self):
@@ -78,14 +83,16 @@ class CryptoTrackerViewTests(TestCase):
             reverse("accounts"),
             {"name": "New Account"},
         )
-        self.assertEqual(response.status_code, 302)  # Redirect after successful addition
+        self.assertEqual(
+            response.status_code, 302
+        )  # Redirect after successful addition
         self.assertTrue(Account.objects.filter(name="New Account").exists())
 
     def test_delete_account_view(self):
-        response = self.client.post(
-            reverse("delete_account", args=[self.account.id])
-        )
-        self.assertEqual(response.status_code, 302)  # Redirect after successful deletion
+        response = self.client.post(reverse("delete_account", args=[self.account.id]))
+        self.assertEqual(
+            response.status_code, 302
+        )  # Redirect after successful deletion
         self.assertFalse(Account.objects.filter(id=self.account.id).exists())
 
     def test_refresh_view(self):

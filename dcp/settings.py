@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
+
 import os
 
 from pathlib import Path
@@ -20,12 +21,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', "django-insecure-&#)-yj@wbe9#fwg_^)h&)!0u&v4tu4yd_d*tmbbu$f8n18hvl!")
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-&#)-yj@wbe9#fwg_^)h&)!0u&v4tu4yd_d*tmbbu$f8n18hvl!",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DJANGO_DEBUG','True')
+DEBUG = os.environ.get("DJANGO_DEBUG", "True")
 
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOW_HOSTS','127.0.0.1').split(',')
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOW_HOSTS", "127.0.0.1").split(",")
 
 
 # Application definitionc
@@ -74,8 +78,10 @@ WSGI_APPLICATION = "dcp.wsgi.application"
 
 
 # Celery settings
-CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', "redis://localhost:6379")
-CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND',"redis://localhost:6379")
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379")
+CELERY_RESULT_BACKEND = os.environ.get(
+    "CELERY_RESULT_BACKEND", "redis://localhost:6379"
+)
 
 
 # Database

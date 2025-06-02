@@ -5,7 +5,9 @@ API_KEY_THE_GRAPH = os.environ["API_KEY_THE_GRAPH"]
 
 
 def send_graphql_query(id: str, query: str, variables=None) -> dict:
-
+    """
+    Sends a GraphQL query to The Graph API and returns the response as a dictionary.
+    """
     url = f"https://gateway.thegraph.com/api/subgraphs/id/{id}"
 
     headers = {
@@ -34,4 +36,5 @@ def send_graphql_query(id: str, query: str, variables=None) -> dict:
     except Exception as e:
         print(f"Unexpected error: {e}")
 
-    return None
+    # Return an empty dictionary in case of an error
+    return {}

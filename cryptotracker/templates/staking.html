@@ -19,9 +19,9 @@
       <tbody>
         {% for validator in validators %}
           <tr>
-              <td>{{ validator.validator_index }}</td>
-              <td>{{ validator.activation_date }}</td>
-              <td>{{ validator.address.public_address }}</td>
+              <td>{{ validator.validator.validator_index }}</td>
+              <td>{{ validator.validator.activation_date }}</td>
+              <td>{{ validator.validator.address.public_address }}</td>
               <td>{{ validator.balance }}</td>
               <td>{{ validator.status }}</td>
               <td>+ {{ validator.rewards }}</td>

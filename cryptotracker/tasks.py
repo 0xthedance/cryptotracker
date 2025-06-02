@@ -1,13 +1,9 @@
 from celery import shared_task
 from datetime import datetime
 from celery.exceptions import TimeoutError
+
 from cryptotracker.tokens import fetch_assets
-from cryptotracker.models import (
-    Address,
-    Snapshot,
-    Cryptocurrency,
-    Price,
-)
+from cryptotracker.models import Address, Snapshot, Cryptocurrency, Price
 from cryptotracker.staking import fetch_staking_assets
 from cryptotracker.utils import fetch_cryptocurrency_price
 from cryptotracker.protocols.liquity import update_lqty_pools
@@ -15,18 +11,24 @@ from cryptotracker.protocols.aave import update_aave_lending_pools
 
 
 @shared_task
-def create_snapshot():
+def create_snapshot() -> int:
     """
     Creates a new Snapshot entry and returns its ID.
+    Returns:
+        int: The ID of the created Snapshot.
     """
     snapshot = Snapshot.objects.create(date=datetime.now())
     return snapshot.id
 
 
 @shared_task
-def update_cryptocurrency_price(snapshot_id):
+def update_cryptocurrency_price(snapshot_id: int) -> str:
     """
     Fetches the current price of each cryptocurrency and stores it in the database with the given Snapshot.
+    Args:
+        snapshot_id (int): The ID of the Snapshot to associate with the prices.
+    Returns:
+        str: A success message.
     """
     print(snapshot_id)
     snapshot = Snapshot.objects.get(id=snapshot_id)
@@ -34,6 +36,10 @@ def update_cryptocurrency_price(snapshot_id):
     crypto_ids = [crypto.name for crypto in cryptocurrencies]
 
     prices = fetch_cryptocurrency_price(crypto_ids)
+    if prices is None:
+        print("Failed to fetch cryptocurrency prices.")
+        return "Failed to update cryptocurrency prices."
+    
     for crypto in crypto_ids:
         crypto_price = Price(
             cryptocurrency=Cryptocurrency.objects.get(name=crypto),
@@ -46,9 +52,13 @@ def update_cryptocurrency_price(snapshot_id):
 
 
 @shared_task
-def update_assets_database(snapshot_id):
+def update_assets_database(snapshot_id: int) -> str:
     """
     Fetches the assets of a user and stores them in the database with the given Snapshot.
+    Args:
+        snapshot_id (int): The ID of the Snapshot to associate with the assets.
+    Returns:
+        str: A success message.
     """
     print("Updating assets database...")
     snapshot = Snapshot.objects.get(id=snapshot_id)
@@ -68,9 +78,13 @@ def update_assets_database(snapshot_id):
 
 
 @shared_task
-def update_staking_assets(snapshot_id):
+def update_staking_assets(snapshot_id: int) -> str:
     """
     Fetches the staking assets of a user and stores them in the database with the given Snapshot.
+    Args:
+        snapshot_id (int): The ID of the Snapshot to associate with the staking assets.
+    Returns:
+        str: A success message.
     """
     snapshot = Snapshot.objects.get(id=snapshot_id)
 
@@ -88,18 +102,22 @@ def update_staking_assets(snapshot_id):
 
 
 @shared_task
-def update_protocols(snapshot_id):
+def update_protocols(snapshot_id: int) -> str:
     """
     Fetches the protocols of a user and stores them in the database with the given Snapshot.
+    Args:
+        snapshot_id (int): The ID of the Snapshot to associate with the protocols.
+    Returns:
+        str: A success message.
     """
     snapshot = Snapshot.objects.get(id=snapshot_id)
 
     addresses = Address.objects.all()
     for address in addresses:
         try:
-            print(f"Fetching protocols for address: {address.public_address}")
-            update_lqty_pools(address.public_address, snapshot)
-            update_aave_lending_pools(address.public_address, snapshot)
+            print(f"Fetching protocols for address: {address}")
+            update_lqty_pools(address, snapshot)
+            update_aave_lending_pools(address, snapshot)
         except TimeoutError:
             print("TimeoutError: Retrying...")
             continue

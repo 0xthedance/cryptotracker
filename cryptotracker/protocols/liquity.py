@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from ape import Contract, networks
 from cryptotracker.models import (
     Pool,
@@ -8,23 +6,28 @@ from cryptotracker.models import (
     Trove,
     TroveSnapshot,
     Address,
+    Snapshot
 )
 from cryptotracker.protocols.protocols import save_pool_balance, save_pool_rewards
 from cryptotracker.protocols.subgraph import send_graphql_query
 
 ETH_NETWORK_NAME = "Ethereum"
 
-THEGRAPH_ID_LQTY= "6bg574MHrEZXopJDYTu7S7TAvJKEMsV111gpKLM7ZCA7"
+LIQUITY_V2 ="Liquity V2"
 
-def get_troves(address: str, snapshot):
+LIQUITY_V1 ="Liquity V1"
+
+THEGRAPH_ID_LQTY = "6bg574MHrEZXopJDYTu7S7TAvJKEMsV111gpKLM7ZCA7"
+
+
+def get_troves(address: Address, snapshot: Snapshot) -> None:
     """Query all the troves for a given address using The Graph API"""
-
 
     query = f"""
     {{
         troves(
             where: {{
-                borrower: "{address}",
+                borrower: "{address.public_address}",
                 status_in: ["active"]
             }}
             orderBy: updatedAt
@@ -43,44 +46,42 @@ def get_troves(address: str, snapshot):
     """
 
     protocol = ProtocolNetwork.objects.get(
-        protocol__name="Liquity V2", network__name=ETH_NETWORK_NAME
+        protocol__name=LIQUITY_V2, network__name=ETH_NETWORK_NAME
     )
 
-    troves_v2 = send_graphql_query(THEGRAPH_ID_LQTY, query)
-    print(troves_v2)
+    troves = send_graphql_query(THEGRAPH_ID_LQTY, query)
+    if not troves or not troves.get("data") or not troves["data"].get("troves"):
+        return
 
-    for trove in troves_v2["data"]["troves"]:
-        if trove["collateral"]["collIndex"] == 0:
-            token = Cryptocurrency.objects.get(symbol="WETH")
-        elif trove["collateral"]["collIndex"] == 1:
-            token = Cryptocurrency.objects.get(symbol="wstETH")
-        else:
-            token = Cryptocurrency.objects.get(symbol="rETH")
-    
-        trove_obj, created = Trove.objects.get_or_create(
+    for trove in troves["data"]["troves"]:
+        token = Cryptocurrency.objects.get(
+            symbol={
+                0: "WETH",
+                1: "wstETH",
+            }.get(trove["collateral"]["collIndex"], "rETH")
+        )
+
+        trove_obj, _ = Trove.objects.get_or_create(
             trove_id=trove["id"],
             defaults={
-                "address":Address.objects.get(public_address=address),
-                "pool" : Pool.objects.get(protocol_network = protocol, name= "borrow"),
-                "token" : token,
+                "address": address,
+                "pool": Pool.objects.get(protocol_network=protocol, name="borrow"),
+                "token": token,
             },
-        )    
+        )
 
-        trove_snapshot = TroveSnapshot(
+        TroveSnapshot.objects.create(
             trove=trove_obj,
             collateral=int(trove["deposit"]) / 1e18,
             debt=int(trove["debt"]) / 1e18,
             interest_rate=int(trove["interestRate"]) / 1e16,
             snapshot=snapshot,
         )
-        trove_snapshot.save()
-
-    # troves_v1 = send_graphql_query(id_lqty_v1, query)
 
 
-def get_proxy_staking_contract(address: str) -> str:
+def get_proxy_staking_contract(address: Address) -> str:
     protocol = ProtocolNetwork.objects.get(
-        protocol__name="Liquity V2", network__name="Ethereum"
+        protocol__name=LIQUITY_V2, network__name=ETH_NETWORK_NAME
     )
     pool = Pool.objects.get(
         protocol_network=protocol,
@@ -88,46 +89,44 @@ def get_proxy_staking_contract(address: str) -> str:
     )
     with networks.parse_network_choice("ethereum:mainnet:alchemy"):
         lqty_govern_contract = Contract(pool.address)
-        return lqty_govern_contract.deriveUserProxyAddress(address)
+        return lqty_govern_contract.deriveUserProxyAddress(address.public_address)
 
 
-def get_lqty_stakes(address):
+def get_lqty_stakes(public_address: str) -> dict:
     """
-    Returns the LQTY  stakes of a given address using the staking pool v1.
+    Returns the LQTY stakes of a given public address using the staking pool v1.
     Args:
-        address (str): The address to check.
+        public_address (str): The address to check.
     Returns:
-        list: A list of LQTY governance stakes.
+        dict: A dictionary with LQTY stakes information.
     """
     protocol = ProtocolNetwork.objects.get(
-        protocol__name="Liquity V1", network__name="Ethereum"
+        protocol__name=LIQUITY_V1, network__name=ETH_NETWORK_NAME
     )
-    print(protocol)
     pool = Pool.objects.get(
         protocol_network=protocol,
         name="staking",
     )
-    print(pool)
     with networks.parse_network_choice("ethereum:mainnet:alchemy"):
         contract = Contract(pool.address)
-        lqty_stakes = contract.stakes(address)
+        lqty_stakes = contract.stakes(public_address)
         if not lqty_stakes:
             return {}
-        eth_rewards = contract.getPendingETHGain(address)
-        lusd_rewards = contract.getPendingLUSDGain(address)
-        lqty_staking = {
+        eth_rewards = contract.getPendingETHGain(public_address)
+        lusd_rewards = contract.getPendingLUSDGain(public_address)
+        return {
             "lqty_stakes": lqty_stakes / 1e18,
             "eth_rewards": eth_rewards / 1e18,
             "lusd_rewards": lusd_rewards / 1e18,
         }
-        return lqty_staking
 
 
-def update_lqty_pools(address, snapshot):
+def update_lqty_pools(address: Address, snapshot: Snapshot) -> None:
     """
     Updates the snapshots of the LQTY pools participation for a given address.
     Args:
-        address (str): The address to check.
+        address (Address): The address to check.
+        snapshot (Snapshot): The snapshot object to associate with the updates.
     """
     update_lqty_stability_pool(address, snapshot)
     update_lqty_stability_pool_v2(address, snapshot)
@@ -137,19 +136,19 @@ def update_lqty_pools(address, snapshot):
 
 
 def update_lqty_v1_staking(
-    address, snapshot
-):  # TODO: Solve the duplication between LQTYV1 stakes and LQTY V2 stakes
+    address: Address, snapshot:Snapshot
+) -> None:  # TODO: Solve the duplication between LQTYV1 stakes and LQTY V2 stakes
     """
     Saves a snapshot of the total LQTY v1 stakes of a given address.
     Args:
         address (str): The address to check.
     """
     print("update_lqty_staking")
-    lqty_staking = get_lqty_stakes(address)
+    lqty_staking = get_lqty_stakes(address.public_address)
     if lqty_staking:
         # Save PoolBalance
         protocol = ProtocolNetwork.objects.get(
-            protocol__name="Liquity V1", network__name="Ethereum"
+            protocol__name=LIQUITY_V1, network__name=ETH_NETWORK_NAME
         )
         pool = Pool.objects.get(
             protocol_network=protocol,
@@ -179,11 +178,11 @@ def update_lqty_v1_staking(
         )
 
 
-def update_lqty_v2_staking(address, snapshot):
+def update_lqty_v2_staking(address: Address, snapshot: Snapshot) -> None:
     """
     Saves the total LQTY V2 governance stakes of a given address.
     Args:
-        address (str): The address to check.
+        address (Address): The address to check.
     """
     print("update_lqty_staking_v2")
 
@@ -192,7 +191,7 @@ def update_lqty_v2_staking(address, snapshot):
     if lqty_staking:
         # Save PoolBalance
         protocol = ProtocolNetwork.objects.get(
-            protocol__name="Liquity V1", network__name="Ethereum"
+            protocol__name=LIQUITY_V1, network__name=ETH_NETWORK_NAME
         )
 
         pool = Pool.objects.get(
@@ -223,7 +222,7 @@ def update_lqty_v2_staking(address, snapshot):
         )
 
 
-def update_lqty_stability_pool(address, snapshot):
+def update_lqty_stability_pool(address: Address, snapshot: Snapshot) -> None:
     """
     Saves the LQTY V1 stability pool participation of a given address.
     Args:
@@ -231,7 +230,7 @@ def update_lqty_stability_pool(address, snapshot):
     """
     print("update_lqty_stability_pool_v1")
     protocol = ProtocolNetwork.objects.get(
-        protocol__name="Liquity V1", network__name="Ethereum"
+        protocol__name=LIQUITY_V1, network__name=ETH_NETWORK_NAME
     )
     pool = Pool.objects.get(
         protocol_network=protocol,
@@ -239,11 +238,11 @@ def update_lqty_stability_pool(address, snapshot):
     )
     with networks.parse_network_choice("ethereum:mainnet:alchemy"):
         contract = Contract(pool.address)
-        deposits = contract.deposits(address)
+        deposits = contract.deposits(address.public_address)
         if not deposits.initialValue:
-            return {}
-        ETH_gains = contract.getDepositorETHGain(address)
-        LQTY_gains = contract.getDepositorLQTYGain(address)
+            return
+        ETH_gains = contract.getDepositorETHGain(address.public_address)
+        LQTY_gains = contract.getDepositorLQTYGain(address.public_address)
 
         # Save PoolBalance
         save_pool_balance(
@@ -270,7 +269,7 @@ def update_lqty_stability_pool(address, snapshot):
         )
 
 
-def update_lqty_stability_pool_v2(address, snapshot):
+def update_lqty_stability_pool_v2(address: Address, snapshot: Snapshot) -> None:
     """
     Saves a snapshot of the participation of a given address in the three LIQUITY V2 stabiity pools .
     Args:
@@ -278,7 +277,7 @@ def update_lqty_stability_pool_v2(address, snapshot):
     """
     print("update_lqty_stability_pool_v2")
     protocol = ProtocolNetwork.objects.get(
-        protocol__name="Liquity V2", network__name="Ethereum"
+        protocol__name=LIQUITY_V2, network__name=ETH_NETWORK_NAME
     )
     pools = Pool.objects.filter(
         protocol_network=protocol,
@@ -287,12 +286,12 @@ def update_lqty_stability_pool_v2(address, snapshot):
     with networks.parse_network_choice("ethereum:mainnet:alchemy"):
         for pool in pools:
             contract = Contract(pool.address)
-            deposits = contract.deposits(address)
+            deposits = contract.deposits(address.public_address)
             print(deposits)
             if not deposits:
                 continue
-            coll_gains = contract.getDepositorCollGain(address)
-            yield_gains = contract.getDepositorYieldGain(address)
+            coll_gains = contract.getDepositorCollGain(address.public_address)
+            yield_gains = contract.getDepositorYieldGain(address.public_address)
 
             # Save PoolBalance
             save_pool_balance(
@@ -311,13 +310,12 @@ def update_lqty_stability_pool_v2(address, snapshot):
                 yield_gains / 1e18,
                 snapshot,
             )
-            if pool.name == "stability pool WETH":
-                token = Cryptocurrency.objects.get(symbol="WETH")
-            elif pool.name == "stability pool wstETH":
-                token = Cryptocurrency.objects.get(symbol="wstETH")
-            else:
-                token = Cryptocurrency.objects.get(symbol="rETH")
-
+            token = Cryptocurrency.objects.get(
+                symbol={
+                    "stability pool WETH": "WETH",
+                    "stability pool wstETH": "wstETH",
+                }.get(pool.name, "rETH")
+            )
             save_pool_rewards(
                 address,
                 pool,

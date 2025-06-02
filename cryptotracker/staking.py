@@ -1,9 +1,9 @@
 from decimal import Decimal
 from datetime import datetime
-
+from typing import Optional, List, Dict, Union
 
 from cryptotracker.utils import APIquery, get_last_price
-from cryptotracker.models import Validator, ValidatorSnapshot, Snapshot
+from cryptotracker.models import Validator, ValidatorSnapshot, Snapshot, Address
 
 BEACONCHAN_API = "https://beaconcha.in/api/v1/validator"
 
@@ -18,7 +18,7 @@ class ValidatorDetails:
         index: int,
         public_key: str,
         withdrawal_credentials: str,
-        balance: int,
+        balance: float,
         status: str,
         activation_date: str,
     ):
@@ -29,17 +29,21 @@ class ValidatorDetails:
         self.public_key = public_key
         self.withdrawal_credentials = withdrawal_credentials
 
-    def __repr__(self):
-        return f"ValidatorDetails(index={self.index}, public_key={self.public_key}, withdrawal_credentials={self.withdrawal_credentials}, balance={self.balance}, status={self.status}, activation date{self.activation_date})"
+    def __repr__(self) -> str:
+        return (
+            f"ValidatorDetails(index={self.index}, public_key={self.public_key}, "
+            f"withdrawal_credentials={self.withdrawal_credentials}, balance={self.balance}, "
+            f"status={self.status}, activation_date={self.activation_date})"
+        )
 
 
-def get_last_validators(addresses: list) -> list[ValidatorSnapshot]:
+def get_last_validators(addresses: List[Address]) -> Optional[List[ValidatorSnapshot]]:
     """
     Get the last staking assets for a list of addresses.
     Args:
         addresses (list): A list of Address objects.
     Returns:
-        list: A list of ValidatorSnapshot objects.
+        list: A list of ValidatorSnapshot objects or None if no validators exist.
     """
     last_snapshot = Snapshot.objects.first()
     last_validators = ValidatorSnapshot.objects.filter(
@@ -47,21 +51,21 @@ def get_last_validators(addresses: list) -> list[ValidatorSnapshot]:
     )
     if not last_validators:
         return None
-    return last_validators
+    return list(last_validators)
 
 
-def get_aggregated_staking(addresses: list) -> dict:
+def get_aggregated_staking(addresses: List[Address]) -> Optional[Dict[str, Union[int, Decimal]] ]:
     """
     Get the aggregated staking information for a list of addresses.
     Args:
         addresses (list): A list of Address objects.
     Returns:
-        dict: A dictionary containing the aggregated staking information.
+        dict: A dictionary containing the aggregated staking information or None if no validators exist.
     """
-    total_eth_staking = {}
-    num_validators = int(0)
-    balance = int(0)
-    rewards = int(0)
+    total_eth_staking: Dict[str, Union[int, Decimal]]  = {}
+    num_validators = 0
+    balance = Decimal(0)
+    rewards = Decimal(0)
     last_validators = get_last_validators(addresses)
     if last_validators is None:
         return None
@@ -80,11 +84,12 @@ def get_aggregated_staking(addresses: list) -> dict:
     return total_eth_staking
 
 
-def fetch_staking_assets(address: str, snapshot):
+def fetch_staking_assets(address: Address, snapshot: Snapshot) -> None:
     """
     Fetch the staking assets of a user from the Ethereum blockchain and store them in the database.
     Args:
-        address (str): The public address of the address.
+        address (Address): The Address object.
+        snapshot (Snapshot): The Snapshot object.
     """
     validators = get_validators_from_withdrawal(address.public_address)
 
@@ -96,7 +101,7 @@ def fetch_staking_assets(address: str, snapshot):
 
     for validator in validator_details:
         # Create or get the Validator object
-        validator_obj, created = Validator.objects.get_or_create(
+        validator_obj, _ = Validator.objects.get_or_create(
             address=address,
             validator_index=validator.index,
             defaults={
@@ -106,25 +111,24 @@ def fetch_staking_assets(address: str, snapshot):
         )
 
         # Save the validator snapshot
-        validator_snapshot = ValidatorSnapshot(
+        ValidatorSnapshot.objects.create(
             validator=validator_obj,
             balance=validator.balance,
             status=validator.status,
             rewards=rewards[str(validator.index)]["performance"],
             snapshot=snapshot,
         )
-        validator_snapshot.save()
 
 
-def get_validators_from_withdrawal(address: str) -> list[int]:
+def get_validators_from_withdrawal(address: str) -> List[int]:
     """
-    Get the validator indexs from the withdrawal credentials using Beaconcha API.
+    Get the validator indexes from the withdrawal credentials using Beaconcha API.
     Args:
         address (str): The withdrawal credentials address.
     Returns:
-        list: A list of validator indexs.
+        list: A list of validator indexes.
     """
-    validators = []
+    validators: List[int] = []
     params = {"limit": 10, "offset": 0}
 
     url = f"{BEACONCHAN_API}/withdrawalCredentials/{address}"
@@ -140,21 +144,18 @@ def get_validators_from_withdrawal(address: str) -> list[int]:
     return validators
 
 
-def get_validators_info(validator_indexs: list[str]) -> list[ValidatorDetails]:
+def get_validators_info(validator_indexes: List[int]) -> List[ValidatorDetails]:
     """
     Get the validator details from the Beaconcha API.
     Args:
-        validator_indexs (list): A list of validator indexs.
+        validator_indexes (list): A list of validator indexes.
     Returns:
         list: A list of ValidatorDetails objects.
     """
-
-    validator_details_list = []
-    validator_indexs = [str(index) for index in validator_indexs]
-    # Join the validator indexs into a comma-separated string
-    validator_indexs = ",".join(validator_indexs)
-    url = f"{BEACONCHAN_API}/{validator_indexs}"
-    params = {}
+    validator_details_list: List[ValidatorDetails] = []
+    validator_indexes_str = ",".join(map(str, validator_indexes))
+    url = f"{BEACONCHAN_API}/{validator_indexes_str}"
+    params: dict = {}
 
     data = APIquery(url, params)
     if data is None:
@@ -177,27 +178,25 @@ def get_validators_info(validator_indexs: list[str]) -> list[ValidatorDetails]:
         validator_details = ValidatorDetails(
             index, public_key, withdrawal_credentials, balance, status, activation_date
         )
-        print(validator_details)
         validator_details_list.append(validator_details)
 
     return validator_details_list
 
 
-def get_rewards(validator_indexs: list[int]) -> list[Decimal]:
+def get_rewards(validator_indexes: List[int]) -> Dict[str, Dict[str, float]]:
     """
-    Get the rewards for a list of validator indexs fetching
+    Get the rewards for a list of validator indexes fetching
     execution and consensus rewards from BEACONCHA API.
     Args:
-        validator_indexs (list): A list of validator indexs.
+        validator_indexes (list): A list of validator indexes.
     Returns:
-        list: A list of rewards for each validator.
+        dict: A dictionary containing rewards for each validator.
     """
-    rewards = {}
-    validator_indexs = [str(index) for index in validator_indexs]
-    validator_indexs = ",".join(validator_indexs)
+    rewards: Dict[str, Dict[str, float]] = {}
+    validator_indexes_str = ",".join(map(str, validator_indexes))
     # Fetch rewards data from the API
     # Get the current execution reward performance
-    url = f"{BEACONCHAN_API}/{validator_indexs}/execution/performance"
+    url = f"{BEACONCHAN_API}/{validator_indexes_str}/execution/performance"
     data = APIquery(url, {})
     if data is not None:
         for validator in data["data"]:
@@ -210,7 +209,7 @@ def get_rewards(validator_indexs: list[int]) -> list[Decimal]:
             )
 
     # Get the current consensus reward performance
-    url = f"{BEACONCHAN_API}/{validator_indexs}/performance"
+    url = f"{BEACONCHAN_API}/{validator_indexes_str}/performance"
     data = APIquery(url, {})
     if data is not None:
         for validator in data["data"]:
@@ -223,11 +222,16 @@ def get_rewards(validator_indexs: list[int]) -> list[Decimal]:
     return rewards
 
 
-def convert_epoch_datetime(epoch):
-    # Helper to convert epoch to datetime (assume 12 seconds per slot, 32 slots per epoch)
+def convert_epoch_datetime(epoch: int) -> str:
+    """
+    Helper to convert epoch to datetime (assume 12 seconds per slot, 32 slots per epoch).
+    Args:
+        epoch (int): The epoch number.
+    Returns:
+        str: The activation date in YYYY-MM-DD format.
+    """
     seconds_since_genesis = epoch * 32 * 12
     genesis_time = datetime(2020, 12, 1, 12, 0, 23)  # Beacon Chain genesis time
     activation_time = genesis_time.timestamp() + seconds_since_genesis
 
     return datetime.fromtimestamp(activation_time).strftime("%Y-%m-%d")
-

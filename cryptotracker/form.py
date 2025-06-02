@@ -62,4 +62,4 @@ class AddressForm(ModelForm):
 class EditAddressForm(ModelForm):
     class Meta:
         model = Address
-        fields = ["account","wallet_type", "name"]
+        fields = ["account", "wallet_type", "name"]

@@ -1,6 +1,5 @@
-from datetime import datetime
+from decimal import Decimal
 from ape import Contract, networks
-from django.db.models import Sum, F
 
 from cryptotracker.utils import get_last_price
 from cryptotracker.models import (
@@ -12,7 +11,7 @@ from cryptotracker.models import (
 )
 
 
-def fetch_assets(address: Address, snapshot) -> None:
+def fetch_assets(address: Address, snapshot: Snapshot) -> None:
     """
     Fetches the assets of a user from the Ethereum blockchain and stores them in the database.
     This function uses the Ape library to interact with the Ethereum blockchain and fetch the balance of each token.
@@ -64,7 +63,7 @@ def fetch_aggregated_assets(addresses: list[Address]) -> dict:
         return {}
 
     # Aggregate assets by cryptocurrency and network
-    aggregated_assets = {}
+    aggregated_assets: dict = {}
     for asset in last_assets:
         token = asset.cryptocurrency.cryptocurrency
         network = asset.cryptocurrency.network
@@ -81,9 +80,9 @@ def fetch_aggregated_assets(addresses: list[Address]) -> dict:
             aggregated_assets[key] = {
                 "symbol": symbol,
                 "network": network.name,
-                "amount": 0,
+                "amount": Decimal(0),
                 "image": token.image,
-                "amount_eur": 0,
+                "amount_eur": Decimal(0),
             }
 
         aggregated_assets[key]["amount"] += asset.quantity

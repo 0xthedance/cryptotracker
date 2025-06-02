@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from cryptotracker.models import (
     Snapshot,
     Pool,
@@ -6,15 +8,14 @@ from cryptotracker.models import (
     PoolRewards,
     Address,
     TroveSnapshot,
+    Cryptocurrency,
 )
 
 from cryptotracker.utils import get_last_price
-from datetime import datetime
-
-from django.db.models import Max
 
 
-def save_pool_balance(address, pool, token, quantity, date):
+
+def save_pool_balance(address: Address, pool: Pool, token: Cryptocurrency, quantity: Decimal, snapshot: Snapshot):
     """
     Saves the pool balance to the database.
     Args:
@@ -24,11 +25,11 @@ def save_pool_balance(address, pool, token, quantity, date):
     """
     try:
         pool_balance = PoolBalance(
-            address=Address.objects.get(public_address=address),
+            address=address,
             pool=pool,
             token=token,
             quantity=quantity,
-            snapshot=date,
+            snapshot=snapshot,
         )
         print(pool_balance)
 
@@ -37,7 +38,7 @@ def save_pool_balance(address, pool, token, quantity, date):
         print(f"Error saving pool {pool.name} balance: {e}")
 
 
-def save_pool_rewards(address, pool, token, quantity, date):
+def save_pool_rewards(address: Address, pool: Pool, token: Cryptocurrency, quantity: Decimal, snapshot: Snapshot):
     """
     Saves the pool rewards to the database.
     Args:
@@ -46,11 +47,11 @@ def save_pool_rewards(address, pool, token, quantity, date):
         quantity (float): The quantity of the token.
     """
     pool_rewards = PoolRewards(
-        address=Address.objects.get(public_address=address),
+        address=address,
         pool=pool,
         token=token,
         quantity=quantity,
-        snapshot=date,
+        snapshot=snapshot,
     )
     print(pool_rewards)
     pool_rewards.save()
@@ -62,9 +63,11 @@ def get_protocols_snapshots(addresses: list, protocol_name: str) -> dict:
     This function iterates through all the protocols and their pools, fetching the data from the database
     and returning it as a dictionary.
     """
-    last_pool_data = {}
+    last_pool_data: dict = {}
     protocols = ProtocolNetwork.objects.filter(protocol__name=protocol_name)
     last_snapshot = Snapshot.objects.first()
+    if not last_snapshot:
+        return {}
     for protocol in protocols:
         pools_balances = PoolBalance.objects.filter(
             address__in=addresses, pool__protocol_network=protocol
@@ -85,7 +88,9 @@ def get_protocols_snapshots(addresses: list, protocol_name: str) -> dict:
 
             if pool.name == "borrow":
                 troves = TroveSnapshot.objects.filter(
-                    trove__address__in=addresses, trove__pool=pool, snapshot=last_snapshot
+                    trove__address__in=addresses,
+                    trove__pool=pool,
+                    snapshot=last_snapshot,
                 )
                 if not troves:
                     continue
@@ -95,16 +100,13 @@ def get_protocols_snapshots(addresses: list, protocol_name: str) -> dict:
             last_pool_balances = pools_balances.filter(
                 pool=pool, snapshot=last_snapshot
             )
-            last_pool_rewards = pools_rewards.filter(
-                pool=pool, snapshot=last_snapshot
-            )
+            last_pool_rewards = pools_rewards.filter(pool=pool, snapshot=last_snapshot)
             if not last_pool_balances:
                 continue
 
             for balance in last_pool_balances:
                 current_price = get_last_price(
-                    balance.token.name, last_snapshot.date
-                )
+                    balance.token.name, last_snapshot.date)
                 last_pool_data[pool.name]["balances"][balance.token.symbol] = {
                     "network": balance.pool.protocol_network.network.name,
                     "quantity": balance.quantity,
@@ -117,3 +119,4 @@ def get_protocols_snapshots(addresses: list, protocol_name: str) -> dict:
                 }
 
     return last_pool_data
+

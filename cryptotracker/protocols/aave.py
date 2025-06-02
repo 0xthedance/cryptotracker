@@ -1,13 +1,13 @@
 from ape import Contract, networks
-from cryptotracker.models import Pool, Cryptocurrency, Network, ProtocolNetwork
+from cryptotracker.models import Pool, Cryptocurrency, Address, ProtocolNetwork, Snapshot
 from cryptotracker.protocols.protocols import save_pool_balance
 
 
-def update_aave_lending_pools(address: str, snapshot) -> dict:
+def update_aave_lending_pools(address: Address, snapshot: Snapshot) -> None:
     """
     Save the AAVE V3 lending pool participation of a given address (acting as a supplier only).
     Args:
-        address (str): The address to check.
+        address (Address): The address to check.
 
     """
     print("Serching aave pools")
@@ -30,17 +30,18 @@ def update_aave_lending_pools(address: str, snapshot) -> dict:
             for token in tokens:
                 token_address = token[1]
                 try:
-                    aave_pool_data = provider.getUserReserveData(token_address, address)
+                    aave_pool_data = provider.getUserReserveData(token_address, address.public_address)
                 except Exception as e:
                     print(f"Error fetching data for {token_address}: {e}")
                     aave_pool_data = None
+
                 if not aave_pool_data or aave_pool_data.currentATokenBalance == 0:
                     continue
                 # Save PoolBalance
                 save_pool_balance(
-                    address,
-                    pool,
-                    Cryptocurrency.objects.get(symbol=token[0]),
-                    aave_pool_data.currentATokenBalance / 1e18,
-                    snapshot,
+                    address=address,
+                    pool=pool,
+                    token=Cryptocurrency.objects.get(symbol=token[0]),
+                    quantity=aave_pool_data.currentATokenBalance / 1e18,
+                    snapshot=snapshot,
                 )

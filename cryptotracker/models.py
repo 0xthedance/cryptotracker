@@ -44,12 +44,14 @@ class Account(models.Model):
     def __str__(self):
         return f"{self.name}"
 
+
 class WalletType(models.Model):
 
     name = models.CharField(max_length=20, unique=True)
 
     def __str__(self):
         return self.name
+
 
 class Address(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -72,6 +74,7 @@ class SnapshotAssets(models.Model):
 
     def __str__(self):
         return f"{self.cryptocurrency.name} - {self.quantity} - {self.snapshot}"
+
 
 class Validator(models.Model):
     address = models.ForeignKey("Address", on_delete=models.CASCADE)
@@ -100,6 +103,14 @@ class Protocol(models.Model):
 
     def __str__(self):
         return f"{self.name}"
+
+
+class ProtocolNetwork(models.Model):
+    protocol = models.ForeignKey("Protocol", on_delete=models.CASCADE)
+    network = models.ForeignKey("Network", on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.protocol.name} on {self.network.name}"
 
 
 class Pool(models.Model):
@@ -163,9 +174,3 @@ class Snapshot(models.Model):
         return f"{self.date}"
 
 
-class ProtocolNetwork(models.Model):
-    protocol = models.ForeignKey("Protocol", on_delete=models.CASCADE)
-    network = models.ForeignKey("Network", on_delete=models.CASCADE)
-
-    def __str__(self):
-        return f"{self.protocol.name} on {self.network.name}"

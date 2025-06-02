@@ -50,7 +50,7 @@ urlpatterns = [
             "model": Address,
             "redirect_url": "addresses",
             "form": EditAddressForm,
-            "object_type": "Address"
+            "object_type": "Address",
         },
         name="edit_address",
     ),
@@ -61,8 +61,7 @@ urlpatterns = [
             "model": Account,
             "redirect_url": "accounts",
             "form": AccountForm,
-            "object_type": "Account"
-
+            "object_type": "Account",
         },
         name="edit_account",
     ),
