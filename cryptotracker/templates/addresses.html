@@ -25,12 +25,18 @@
                     </td>
                     <td>{{ address.address.account}}</td>
                     <td>
-                        {{ address.address.public_address }}  
+                        {{ address.address.public_address }}
                         <button class="button is-small is-light" onclick="copyToClipboard('{{ address.address.public_address }}')">
                             <span class="icon">
                                 <i class="fas fa-copy"></i>
                             </span>
                         </button>
+                        <a class="button is-small is-light" href="https://etherscan.io/address/{{ address.address.public_address }}" target="_blank">
+                            <span class="icon">
+                                <i class="fas fa-link"></i>
+                            </span>
+                        </a>
+
                     </td>
                     <td>{{ address.address.wallet_type }}</td>
                     <td>{{ address.balance }} EUR</td>
