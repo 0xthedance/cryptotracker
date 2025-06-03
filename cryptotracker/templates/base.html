@@ -17,7 +17,7 @@
             <img src="{% static "cryptotracker/Logo_Amamu.png" %}" />
         
 
-      <a class="navbar-item has-text-primary is-size-3" href="{% url "home" %}">Crypto Tracker</a>
+      <a class="navbar-item has-text-primary is-size-4" href="{% url "home" %}">Crypto Tracker</a>
 
     <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
       <span aria-hidden="true"></span>
@@ -33,8 +33,10 @@
 
         <div class="buttons">
           {% if request.user.is_active %}
-                          <a class="button is-primary" href="{% url "portfolio" %}">{{request.user}} </a>
-
+          <a class="button is-light" href="{% url 'portfolio' %}">
+            <span class="icon"><i class="fas fa-user"></i></span>
+            <span>{{ request.user }}</span>
+        </a>
               {% include "registration/_logout.html" %}
             
           {% else %}
@@ -57,6 +59,7 @@
     <!-- Accounts Tab -->
     <li class="{% if request.resolver_match.url_name == 'accounts' %}is-active{% endif %}">
       <a href="{% url 'accounts' %}">
+        <span class="icon"><i class="fas fa-wallet"></i></span>
         <span>Accounts</span>
       </a>
     </li>
@@ -65,6 +68,7 @@
     <!-- Address Tab -->
     <li class="{% if request.resolver_match.url_name == 'addresses' %}is-active{% endif %}">
       <a href="{% url 'addresses' %}">
+        <span class="icon"><i class="fas fa-address-book"></i></span>
         <span>Addresses</span>
       </a>
     </li>
@@ -72,6 +76,7 @@
      <!-- Portfolio Tab -->
      <li class="{% if request.resolver_match.url_name == 'portfolio' %}is-active{% endif %}">
        <a href="{% url 'portfolio' %}">
+        <span class="icon"><i class="fas fa-chart-line"></i></span>
          <span>Portfolio</span>
        </a>
      </li>
@@ -79,18 +84,21 @@
      <!-- Staking Tab -->
      <li class="{% if request.resolver_match.url_name == 'staking' %}is-active{% endif %}">
        <a href="{% url 'staking' %}">
+        <span class="icon"><i class="fas fa-coins"></i></span>
          <span>Staking</span>
        </a>
      </li>
     <!-- Rewards Tab -->
     <li class="{% if request.resolver_match.url_name == 'rewards' %}is-active{% endif %}">
       <a href="{% url 'rewards' %}">
+        <span class="icon"><i class="fas fa-gift"></i></span>
         <span>Rewards</span>
       </a>
     </li>
     <!-- Stadistics Tab -->
     <li class="{% if request.resolver_match.url_name == 'statistics' %}is-active{% endif %}">
       <a href="{% url 'statistics' %}">
+        <span class="icon"><i class="fas fa-chart-pie"></i></span>
         <span>Statistics</span>
       </a>
     </li>

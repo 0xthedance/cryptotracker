@@ -1,18 +1,31 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container">
-
-    <h2 class = "title is-3 mx-6 my-6">Login</h2>
-
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <input class="button is-dark mt-4" type="submit" value="Login" />
-        <input type="hidden" name="next" value="{% url 'portfolio' %}" />
-    </form>
-
-    <a class="button mx-6 is-primary mt-6" href="{% url "home" %}">              <strong>Back to home</strong>
-    </a>
-
+<div class="container mt-6">
+    <div class="columns is-centered">
+        <div class="column is-half">
+            <div class="box">
+                <h2 class="title is-3 has-text-centered">Login to Your Account</h2>
+                <p class="subtitle is-6 has-text-centered">Access your portfolio and manage your cryptocurrency.</p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <div class="field mt-4">
+                        <div class="control">
+                            <input class="button is-primary is-fullwidth" type="submit" value="Login" />
+                        </div>
+                    </div>
+                    <input type="hidden" name="next" value="{% url 'portfolio' %}" />
+                </form>
+                
+                <div class="has-text-centered mt-4">
+                    <p>Don't have an account? <a href="{% url 'sign_up' %}" class="has-text-link">Sign up</a></p>
+                </div>
+            </div>
+            <div class="has-text-centered mt-4">
+                <a class="button is-light" href="{% url 'home' %}">Back to Home</a>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock content %}

@@ -2,14 +2,21 @@
 {% load static %}
 
 {% block content %}
-
-<div class="container">
-
-    
-    <figure class="image mt-6">
-    <img class= "is-rounded" src="{% static "cryptotracker/home.png" %}"  alt="cryptotracker home image"  />
-    </figure>
-
-
+<div class="container mt-6">
+    <section class="hero is-primary is-bold">
+        <div class="hero-body">
+            <div class="columns is-vcentered">
+                <div class="column is-half">
+                    <h1 class="title is-1">Welcome to Crypto Tracker</h1>
+                    <h2 class="subtitle is-4">Monitor and manage your cryptocurrency portfolio with ease.</h2>
+                </div>
+                <div class="column is-half">
+                    <figure class="image is-3by2">
+                        <img class="is-rounded" src="{% static 'cryptotracker/home.png' %}" alt="Crypto Tracker Home Image">
+                    </figure>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
 {% endblock content %}
