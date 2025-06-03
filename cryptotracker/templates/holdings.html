@@ -143,6 +143,7 @@
                     <th>Trove Id</th>
                     <th>Collateral</th>
                     <th>Debt</th>
+                    <th>Total</th>
                     <th>Interest Rate</th>
                 </tr>
             </thead>
@@ -159,8 +160,21 @@
                     <td>{{ trove.debt|floatformat:2|intcomma }} 
                         {% if protocol_name == "Liquity V2" %}BOLD{% elif protocol_name == "Liquity V1" %}LUSD{% endif %}
                     </td>
+                    <td>
+                        <span id="result-{{ trove.trove_id }}">
+                            <script>
+                                document.addEventListener("DOMContentLoaded", function() {
+                                    const collateral = {{ trove.collateral }};
+                                    const debt = {{ trove.debt }};
+                                    const result = troveId - collateral;
+                                    document.getElementById("result-{{ trove.trove_id }}").textContent = result.toFixed(2);
+                                });
+                            </script>
+                        </span>
+                    </td>
                     <td>{{ trove.interest_rate|floatformat:2 }}%</td>
                 </tr>
+
 
                 {% endfor %}
                 {% endfor %}

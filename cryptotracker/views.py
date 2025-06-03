@@ -58,16 +58,24 @@ def calculate_total_value(
     if total_eth_staking:
         total_value += total_eth_staking["balance_eur"]
     if total_liquity_v1:
-        for pools in total_liquity_v1.values():
-            for asset in pools["balances"].values():
+        for pool in total_liquity_v1.values():
+            if pool == "borrow":
+                for trove in pool["troves"]:
+                    total_value += (trove.collateral - trove.debt)
+                    continue
+            for asset in pool["balances"].values():
                 total_value += asset["balance_eur"]
     if total_liquity_v2:
-        for pools in total_liquity_v2.values():
-            for asset in pools["balances"].values():
+        for pool in total_liquity_v2.values():
+            if pool == "borrow":
+                for trove in pool["troves"]:
+                    total_value += (trove.collateral - trove.debt)
+                    continue
+            for asset in pool["balances"].values():
                 total_value += asset["balance_eur"]
     if total_aave:
-        for pools in total_aave.values():
-            for asset in pools["balances"].values():
+        for pool in total_aave.values():
+            for asset in pool["balances"].values():
                 total_value += asset["balance_eur"]
     return total_value
 
