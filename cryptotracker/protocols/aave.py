@@ -20,7 +20,6 @@ def update_aave_lending_pools(address: Address, snapshot: Snapshot) -> None:
     for pool in pools:
 
         network = pool.protocol_network.network
-        print(network)
 
         with networks.parse_network_choice(network.url_rpc):
             contract = Contract(pool.address)
@@ -37,6 +36,7 @@ def update_aave_lending_pools(address: Address, snapshot: Snapshot) -> None:
 
                 if not aave_pool_data or aave_pool_data.currentATokenBalance == 0:
                     continue
+                
                 # Save PoolBalance
                 save_pool_balance(
                     address=address,

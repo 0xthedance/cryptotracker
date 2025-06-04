@@ -8,6 +8,7 @@ from cryptotracker.staking import fetch_staking_assets
 from cryptotracker.utils import fetch_cryptocurrency_price
 from cryptotracker.protocols.liquity import update_lqty_pools
 from cryptotracker.protocols.aave import update_aave_lending_pools
+from cryptotracker.protocols.uniswap import update_uniswap_v3_positions
 
 
 @shared_task
@@ -118,6 +119,7 @@ def update_protocols(snapshot_id: int) -> str:
             print(f"Fetching protocols for address: {address}")
             update_lqty_pools(address, snapshot)
             update_aave_lending_pools(address, snapshot)
+            update_uniswap_v3_positions(address, snapshot)
         except TimeoutError:
             print("TimeoutError: Retrying...")
             continue

@@ -17,7 +17,7 @@ LIQUITY_V2 ="Liquity V2"
 
 LIQUITY_V1 ="Liquity V1"
 
-THEGRAPH_ID_LQTY = "6bg574MHrEZXopJDYTu7S7TAvJKEMsV111gpKLM7ZCA7"
+LQTY_V2_SUBGRAPH_ID = "6bg574MHrEZXopJDYTu7S7TAvJKEMsV111gpKLM7ZCA7"
 
 
 def get_troves(address: Address, snapshot: Snapshot) -> None:
@@ -49,7 +49,7 @@ def get_troves(address: Address, snapshot: Snapshot) -> None:
         protocol__name=LIQUITY_V2, network__name=ETH_NETWORK_NAME
     )
 
-    troves = send_graphql_query(THEGRAPH_ID_LQTY, query)
+    troves = send_graphql_query(LQTY_V2_SUBGRAPH_ID, query)
     if not troves or not troves.get("data") or not troves["data"].get("troves"):
         return
 

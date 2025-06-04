@@ -123,8 +123,7 @@ class Pool(models.Model):
 
 
 class PoolBalance(models.Model):
-    address = models.ForeignKey("Address", on_delete=models.CASCADE)
-    pool = models.ForeignKey("Pool", on_delete=models.CASCADE)
+    pool_instance = models.ForeignKey("PoolInstance", on_delete=models.CASCADE)
     token = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=20, decimal_places=5)
     snapshot = models.ForeignKey("Snapshot", on_delete=models.CASCADE)

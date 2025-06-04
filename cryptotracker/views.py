@@ -48,35 +48,22 @@ def calculate_total_value(
 
     aggregated_assets = fetch_aggregated_assets(addresses)
     total_eth_staking = get_aggregated_staking(addresses)
-    total_liquity_v1 = get_protocols_snapshots(addresses, protocol_name="Liquity V1")
-    total_liquity_v2 = get_protocols_snapshots(addresses, protocol_name="Liquity V2")
-    total_aave = get_protocols_snapshots(addresses, protocol_name="Aave V3")
+    total_protocols = get_protocols_snapshots(addresses)
 
     total_value = Decimal(0)
     for asset in aggregated_assets.values():
         total_value += asset["amount_eur"]
     if total_eth_staking:
         total_value += total_eth_staking["balance_eur"]
-    if total_liquity_v1:
-        for pool in total_liquity_v1.values():
-            if pool == "borrow":
-                for trove in pool["troves"]:
-                    total_value += (trove.collateral - trove.debt)
-                    continue
-            for asset in pool["balances"].values():
-                total_value += asset["balance_eur"]
-    if total_liquity_v2:
-        for pool in total_liquity_v2.values():
-            if pool == "borrow":
-                for trove in pool["troves"]:
-                    total_value += (trove.collateral - trove.debt)
-                    continue
-            for asset in pool["balances"].values():
-                total_value += asset["balance_eur"]
-    if total_aave:
-        for pool in total_aave.values():
-            for asset in pool["balances"].values():
-                total_value += asset["balance_eur"]
+    if total_protocols:
+        for protocols in total_protocols.values():
+            for pool in protocols.values():
+                if pool == "borrow":
+                    for trove in pool["troves"]:
+                        total_value += (trove.collateral - trove.debt)
+                        continue
+                for asset in pool["balances"].values():
+                    total_value += asset["balance_eur"]
     return total_value
 
 
@@ -105,24 +92,18 @@ def portfolio(request: HttpRequest) -> HttpResponse:
     last_snapshot = Snapshot.objects.first()
     aggregated_assets = fetch_aggregated_assets(addresses)
     total_eth_staking = get_aggregated_staking(addresses)
-    total_liquity_v1 = get_protocols_snapshots(addresses, protocol_name="Liquity V1")
-    total_liquity_v2 = get_protocols_snapshots(addresses, protocol_name="Liquity V2")
-    total_aave = get_protocols_snapshots(addresses, protocol_name="Aave V3")
+    total_protocols = get_protocols_snapshots(addresses)
     portfolio_value = calculate_total_value(addresses)
 
     if last_snapshot:
-        last_snapshot_date = last_snapshot.date  # Use a separate variable for datetime
+        last_snapshot_date = last_snapshot.date 
     else:
         last_snapshot_date = None
     context = {
         "user": request.user,
         "assets": aggregated_assets,
         "staking": total_eth_staking,
-        "protocols": {
-            "Liquity V1": total_liquity_v1,
-            "Liquity V2": total_liquity_v2,
-            "Aave V3": total_aave,
-        },
+        "protocols": total_protocols,
         "addresses": addresses,
         "portfolio_value": f"{portfolio_value:,.2f}",
         "last_snapshot": last_snapshot_date,
@@ -206,9 +187,9 @@ def delete_object(
 def addresses(request: HttpRequest) -> HttpResponse:
     addresses_detail = []
     user = cast(User, request.user)  # Ensure user is cast to User explicitly
-    addresses = list(Address.objects.filter(user=user))  # Correct type for lookup
+    addresses = list(Address.objects.filter(user=user))
     for address in addresses:
-        address_value = calculate_total_value([address])  # Wrap single address in a list
+        address_value = calculate_total_value([address])
         address_detail = {
             "address": address,
             "balance": f"{address_value:,.2f}",
@@ -245,22 +226,16 @@ def address_detail(request: HttpRequest, public_address: str) -> HttpResponse:
     addresses = [address]
     aggregated_assets = fetch_aggregated_assets(addresses)
     total_eth_staking = get_aggregated_staking(addresses)
-    total_liquity_v1 = get_protocols_snapshots(addresses, protocol_name="Liquity V1")
-    total_liquity_v2 = get_protocols_snapshots(addresses, protocol_name="Liquity V2")
-    total_aave = get_protocols_snapshots(addresses, protocol_name="Aave V3")
+    total_protocols = get_protocols_snapshots(addresses)
     portfolio_value = calculate_total_value(addresses)
 
     last_snapshot = Snapshot.objects.first()
-    last_snapshot_date = last_snapshot.date if last_snapshot else None  # Fix type mismatch
+    last_snapshot_date = last_snapshot.date if last_snapshot else None  
     context = {
         "user": request.user,
         "assets": aggregated_assets,
         "staking": total_eth_staking,
-        "protocols": {
-            "Liquity V1": total_liquity_v1,
-            "Liquity V2": total_liquity_v2,
-            "Aave V3": total_aave,
-        },
+        "protocols": total_protocols,
         "addresses": addresses,
         "portfolio_value": f"{portfolio_value:,.2f}",
         "last_snapshot": last_snapshot_date,
@@ -279,7 +254,7 @@ def rewards(request: HttpRequest) -> HttpResponse:
     addresses = list(Address.objects.filter(user=user))   
 
     # Get ETH Staking rewards
-    eth_rewards = Decimal(0)  # Ensure proper type for rewards
+    eth_rewards = Decimal(0) 
     validators = get_last_validators(addresses)
 
     if validators:
@@ -289,7 +264,6 @@ def rewards(request: HttpRequest) -> HttpResponse:
             eth_rewards += validator.rewards * current_price
 
     # Get protocol rewards
-
     rewards = {
         "ETH": f"{eth_rewards:,.2f}",
     }
@@ -322,7 +296,6 @@ def edit_object(
     else:
         form_instance = form(instance=obj) 
 
-    # Render the edit page
     context = {
         "form2": form_instance,
         "object": obj,
@@ -340,18 +313,14 @@ def refresh(request: HttpRequest) -> HttpResponse:
     """
     Trigger the tasks asynchronously with a shared Snapshot.
     """
-    # Create a Snapshot and get its ID
     snapshot_id = create_snapshot()
 
-    # Trigger the tasks asynchronously
     task_group = group(
         update_cryptocurrency_price.s(snapshot_id),
         update_assets_database.s(snapshot_id),
         update_staking_assets.s(snapshot_id),
         update_protocols.s(snapshot_id),
     )
-
-    # Execute the task group asynchronously
     task_group_result = task_group.apply_async()
     print(f"Task group ID: {task_group_result.id}")
 
@@ -372,7 +341,6 @@ def waiting_page(request: HttpRequest) -> HttpResponse:
     if not task_group_id:
         return redirect(reverse("portfolio"))
 
-    # Render the waiting page
     return render(request, "waiting_page.html", {"task_group_id": task_group_id})
 
 
@@ -395,7 +363,6 @@ def check_task_status(request: HttpRequest) -> JsonResponse:
         # All tasks are complete
         return JsonResponse({"status": "complete"})
 
-    # Tasks are still running
     return JsonResponse({"status": "pending"})
 
 
@@ -404,16 +371,15 @@ def statistics(request: HttpRequest) -> HttpResponse:
     """
     Show some statistics of the portfolio.
     """
-    user = cast(User, request.user)  # Ensure user is cast to User explicitly
-    addresses = list(Address.objects.filter(user=user))  # Correct type for lookup
+    user = cast(User, request.user) 
+    addresses = list(Address.objects.filter(user=user)) 
 
     # Statistic balance per type of wallet
-
     wallet_types = ["HOT", "COLD", "SMART"]
 
     wallet_values = {
         wallet: calculate_total_value(
-            list(filter(lambda addr: addr.wallet_type.name == wallet, addresses))  # Fix filter logic
+            list(filter(lambda addr: addr.wallet_type.name == wallet, addresses)) 
         )
         for wallet in wallet_types
     }
