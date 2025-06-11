@@ -6,7 +6,7 @@ TOKENS = [
         "name": "ethereum",
         "symbol": "ETH",
         "image": "cryptotracker/logos/ethereum.png",
-        "address": {
+        "token_address": {
             "Ethereum": "0x",
             "Avalanche": None,
             "Arbitrum": "0x",
@@ -18,7 +18,7 @@ TOKENS = [
         "name": "liquity",
         "symbol": "LQTY",
         "image": "cryptotracker/logos/liquity.png",
-        "address": {
+        "token_address": {
             "Ethereum": "0x6DEA81C8171D0bA574754EF6F8b412F2Ed88c54D",
             "Avalanche": None,
             "Arbitrum": "0xfb9e5d956d889d91a82737b9bfcdac1dce3e1449",
@@ -30,7 +30,7 @@ TOKENS = [
         "name": "ssv-network",
         "symbol": "SSV",
         "image": "cryptotracker/logos/ssv.png",
-        "address": {
+        "token_address": {
             "Ethereum": "0x9D65fF81a3c488d585bBfb0Bfe3c7707c7917f54",
             "Avalanche": None,
             "Arbitrum": None,
@@ -42,7 +42,7 @@ TOKENS = [
         "name": "balancer",
         "symbol": "BAL",
         "image": "cryptotracker/logos/bal.png",
-        "address": {
+        "token_address": {
             "Ethereum": "0xba100000625a3754423978a60c9317c58a424e3d",
             "Avalanche": "0xe15bcb9e0ea69e6ab9fa080c4c4a5632896298c3",
             "Arbitrum": "0x040d1edc9569d4bab2d15287dc5a4f10f56a56b8",
@@ -54,7 +54,7 @@ TOKENS = [
         "name": "liquity-usd",
         "symbol": "LUSD",
         "image": "cryptotracker/logos/lusd.png",
-        "address": {
+        "token_address": {
             "Ethereum": "0x5f98805a4e8be255a32880fdec7f6728c6568ba0",
             "Avalanche": None,
             "Arbitrum": "0x93b346b6bc2548da6a1e7d98e9a421b42541425b",
@@ -66,7 +66,7 @@ TOKENS = [
         "name": "safe",
         "symbol": "SAFE",
         "image": "cryptotracker/logos/safe.png",
-        "address": {
+        "token_address": {
             "Ethereum": "0x5afe3855358e112b5647b952709e6165e1c1eeee",
             "Avalanche": None,
             "Arbitrum": None,
@@ -78,7 +78,7 @@ TOKENS = [
         "name": "arbitrum",
         "symbol": "ARB",
         "image": "cryptotracker/logos/arbitrum.png",
-        "address": {
+        "token_address": {
             "Ethereum": "0xb50721bcf8d664c30412cfbc6cf7a15145234ad1",
             "Avalanche": None,
             "Arbitrum": "0x912ce59144191c1204e64559fe8253a0e49e6548",
@@ -90,7 +90,7 @@ TOKENS = [
         "name": "liquity-bold",
         "symbol": "BOLD",
         "image": "cryptotracker/logos/bold.png",
-        "address": {
+        "token_address": {
             "Ethereum": "0xb01dd87b29d187f3e3a4bf6cdaebfb97f3d9ab98",
             "Avalanche": None,
             "Arbitrum": None,
@@ -102,7 +102,7 @@ TOKENS = [
         "name": "weth",
         "symbol": "WETH",
         "image": "cryptotracker/logos/WETH.png",
-        "address": {
+        "token_address": {
             "Ethereum": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
             "Avalanche": None,
             "Arbitrum": None,
@@ -114,7 +114,7 @@ TOKENS = [
         "name": "wrapped-steth",
         "symbol": "wstETH",
         "image": "cryptotracker/logos/wstETH.png",
-        "address": {
+        "token_address": {
             "Ethereum": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
             "Avalanche": None,
             "Arbitrum": None,
@@ -126,7 +126,7 @@ TOKENS = [
         "name": "rocket-pool-eth",
         "symbol": "rETH",
         "image": "cryptotracker/logos/rETH.png",
-        "address": {
+        "token_address": {
             "Ethereum": "0xae78736cd615f374d3085123a210448e74fc6393",
             "Avalanche": None,
             "Arbitrum": None,
@@ -138,7 +138,7 @@ TOKENS = [
         "name": "usd-coin",
         "symbol": "USDC",
         "image": "cryptotracker/logos/USDC.png",
-        "address": {
+        "token_address": {
             "Ethereum": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
             "Avalanche": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e",
             "Arbitrum": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
@@ -174,9 +174,9 @@ class Command(BaseCommand):
                     )
                 )
 
-            # Iterate through the networks and addresses
-            for network_name, address in token["address"].items():
-                if not address:  # Skip if the address is empty
+            # Iterate through the networks and token_addresses
+            for network_name, token_address in token["token_address"].items():
+                if not token_address:  # Skip if the token_address is empty
                     continue
 
                 # Get the network
@@ -187,7 +187,7 @@ class Command(BaseCommand):
                     CryptocurrencyNetwork.objects.get_or_create(
                         cryptocurrency=cryptocurrency,
                         network=network,
-                        address=address,
+                        token_address=token_address,
                     )
                 )
                 if created_network:

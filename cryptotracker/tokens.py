@@ -3,7 +3,7 @@ from ape import Contract, networks
 
 from cryptotracker.utils import get_last_price
 from cryptotracker.models import (
-    Address,
+    UserAddress,
     SnapshotAssets,
     CryptocurrencyNetwork,
     Network,
@@ -11,7 +11,7 @@ from cryptotracker.models import (
 )
 
 
-def fetch_assets(address: Address, snapshot: Snapshot) -> None:
+def fetch_assets(user_address: UserAddress, snapshot: Snapshot) -> None:
     """
     Fetches the assets of a user from the Ethereum blockchain and stores them in the database.
     This function uses the Ape library to interact with the Ethereum blockchain and fetch the balance of each token.
@@ -21,32 +21,32 @@ def fetch_assets(address: Address, snapshot: Snapshot) -> None:
     crypto_networks = Network.objects.all()
     for network in crypto_networks:
         with networks.parse_network_choice(network.url_rpc) as provider:
-            public_address = address.public_address
+            public_address = user_address.public_address
             # Fetch tokens balance
             for token in CryptocurrencyNetwork.objects.filter(network=network):
                 print(token)
                 if token.cryptocurrency.name == "ethereum":
                     token_asset = provider.get_balance(public_address)
                 else:
-                    token_contract = Contract(token.address)
+                    token_contract = Contract(token.token_address)
                     token_asset = token_contract.balanceOf(public_address)
 
                 if token_asset != 0:
 
                     asset_snapshot = SnapshotAssets(
                         cryptocurrency=token,
-                        address=address,
+                        user_address=user_address,
                         quantity=token_asset / 1e18,
                         snapshot=snapshot,
                     )
                     asset_snapshot.save()
 
 
-def fetch_aggregated_assets(addresses: list[Address]) -> dict:
+def fetch_aggregated_assets(user_addresses: list[UserAddress]) -> dict:
     """
-    Fetches the aggregated assets of a list of addresses.
+    Fetches the aggregated assets of a list of user_addresses.
     Args:
-        addresses (list): A list of Address objects.
+        user_addresses (list): A list of UserAddress objects.
     Returns:
         dict: A dictionary containing the aggregated assets and their values.
     """
@@ -54,9 +54,9 @@ def fetch_aggregated_assets(addresses: list[Address]) -> dict:
     if not last_snapshot:
         return {}
 
-    # Filter assets for the given addresses and snapshot date
+    # Filter assets for the given user_addresses and snapshot date
     last_assets = SnapshotAssets.objects.filter(
-        address__in=addresses, snapshot=last_snapshot
+        user_address__in=user_addresses, snapshot=last_snapshot
     )
 
     if not last_assets.exists():

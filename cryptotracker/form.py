@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import ModelForm
 
-from cryptotracker.models import Account, Address
+from cryptotracker.models import Account, UserAddress
 
 
 class AccountForm(ModelForm):
@@ -28,9 +28,9 @@ class AccountForm(ModelForm):
         return name
 
 
-class AddressForm(ModelForm):
+class UserAddressForm(ModelForm):
     class Meta:
-        model = Address
+        model = UserAddress
         fields = ["public_address", "account", "wallet_type", "name"]
 
     def clean_public_address(self):
@@ -40,26 +40,26 @@ class AddressForm(ModelForm):
 
         # Length check
         if len(public_address) != 42:
-            raise forms.ValidationError("Invalid public address length")
+            raise forms.ValidationError("Invalid public user_address length")
 
         # Prefix check
         if not public_address.startswith("0x"):
-            raise forms.ValidationError("Invalid public address prefix")
+            raise forms.ValidationError("Invalid public user_address prefix")
 
         # Hexadecimal check
         try:
             int(public_address, 16)
         except ValueError:
-            raise forms.ValidationError("Invalid public address hexadecimal")
+            raise forms.ValidationError("Invalid public user_address hexadecimal")
 
         # Existence check
-        if Address.objects.filter(public_address=public_address).exists():
-            raise forms.ValidationError("Public address already exists")
+        if UserAddress.objects.filter(public_address=public_address).exists():
+            raise forms.ValidationError("Public user_address already exists")
 
         return public_address
 
 
-class EditAddressForm(ModelForm):
+class EditUserAddressForm(ModelForm):
     class Meta:
-        model = Address
+        model = UserAddress
         fields = ["account", "wallet_type", "name"]

@@ -14,8 +14,8 @@ from decimal import Decimal
 from celery import group
 from celery.result import GroupResult
 
-from cryptotracker.form import AddressForm, AccountForm
-from cryptotracker.models import Snapshot, Address, Account
+from cryptotracker.form import UserAddressForm, AccountForm
+from cryptotracker.models import Snapshot, UserAddress, Account
 from cryptotracker.staking import (
     get_aggregated_staking,
     get_last_validators,
@@ -40,30 +40,31 @@ from cryptotracker.protocols.protocols import get_protocols_snapshots
 
 
 def calculate_total_value(
-    addresses: List[Address],
+    user_addresses: List[UserAddress],
 ) -> Decimal:
     """
-    Helper function to calculate the total value for a given set of addresses.
+    Helper function to calculate the total value for a given set of user_addresses.
     """
 
-    aggregated_assets = fetch_aggregated_assets(addresses)
-    total_eth_staking = get_aggregated_staking(addresses)
-    total_protocols = get_protocols_snapshots(addresses)
+    aggregated_assets = fetch_aggregated_assets(user_addresses)
+    total_eth_staking = get_aggregated_staking(user_addresses)
+    total_protocols = get_protocols_snapshots(user_addresses)
 
     total_value = Decimal(0)
     for asset in aggregated_assets.values():
         total_value += asset["amount_eur"]
     if total_eth_staking:
         total_value += total_eth_staking["balance_eur"]
+        print(total_value)
     if total_protocols:
-        for protocols in total_protocols.values():
-            for pool in protocols.values():
-                if pool == "borrow":
-                    for trove in pool["troves"]:
-                        total_value += (trove.collateral - trove.debt)
-                        continue
-                for asset in pool["balances"].values():
-                    total_value += asset["balance_eur"]
+        for protocol_pools in total_protocols["pool_data"].values():
+            total_value += sum(data.balance_eur for data in protocol_pools)
+            print(total_value)
+        if total_protocols["troves"]:
+            print(total_protocols["troves"])
+            for trove in total_protocols["troves"]:
+                total_value += trove.balance
+        print(total_value)
     return total_value
 
 
@@ -88,12 +89,13 @@ def portfolio(request: HttpRequest) -> HttpResponse:
     
     user = cast(User, request.user)
 
-    addresses = list(Address.objects.filter(user=user))   
+    user_addresses = list(UserAddress.objects.filter(user=user))   
     last_snapshot = Snapshot.objects.first()
-    aggregated_assets = fetch_aggregated_assets(addresses)
-    total_eth_staking = get_aggregated_staking(addresses)
-    total_protocols = get_protocols_snapshots(addresses)
-    portfolio_value = calculate_total_value(addresses)
+    aggregated_assets = fetch_aggregated_assets(user_addresses)
+    total_eth_staking = get_aggregated_staking(user_addresses)
+    total_protocols = get_protocols_snapshots(user_addresses)
+    print(total_protocols, "total protocols")
+    portfolio_value = calculate_total_value(user_addresses)
 
     if last_snapshot:
         last_snapshot_date = last_snapshot.date 
@@ -103,8 +105,9 @@ def portfolio(request: HttpRequest) -> HttpResponse:
         "user": request.user,
         "assets": aggregated_assets,
         "staking": total_eth_staking,
-        "protocols": total_protocols,
-        "addresses": addresses,
+        "protocols": total_protocols["pool_data"],
+        "troves": total_protocols["troves"],
+        "user_addresses": user_addresses,
         "portfolio_value": f"{portfolio_value:,.2f}",
         "last_snapshot": last_snapshot_date,
     }
@@ -116,8 +119,8 @@ def portfolio(request: HttpRequest) -> HttpResponse:
 def staking(request: HttpRequest) -> HttpResponse:
     user = cast(User, request.user)
 
-    addresses = list(Address.objects.filter(user=user))   
-    validators = get_last_validators(addresses)
+    user_addresses = list(UserAddress.objects.filter(user=user))   
+    validators = get_last_validators(user_addresses)
 
     context = {
         "validators": validators,
@@ -133,8 +136,8 @@ def accounts(request: HttpRequest) -> HttpResponse:
 
     if accounts:
         for account in accounts:
-            addresses = list(Address.objects.filter(account=account))  
-            account_value = calculate_total_value(addresses)
+            user_addresses = list(UserAddress.objects.filter(account=account))  
+            account_value = calculate_total_value(user_addresses)
             account_detail = {
                 "account": account,
                 "balance": f"{account_value:,.2f}",
@@ -184,50 +187,50 @@ def delete_object(
 
 
 @login_required()
-def addresses(request: HttpRequest) -> HttpResponse:
+def user_addresses(request: HttpRequest) -> HttpResponse:
     addresses_detail = []
     user = cast(User, request.user)  # Ensure user is cast to User explicitly
-    addresses = list(Address.objects.filter(user=user))
-    for address in addresses:
-        address_value = calculate_total_value([address])
+    user_addresses = list(UserAddress.objects.filter(user=user))
+    for user_address in user_addresses:
+        address_value = calculate_total_value([user_address])
         address_detail = {
-            "address": address,
+            "user_address": user_address,
             "balance": f"{address_value:,.2f}",
         }
         addresses_detail.append(address_detail)
 
     if request.method == "POST":
-        form = AddressForm(request.POST)
+        form = UserAddressForm(request.POST)
         if form.is_valid():
             public_address = form.clean_public_address()
             if Web3.is_checksum_address(public_address) is False:
                 public_address = Web3.to_checksum_address(public_address)
 
-            address = Address(
+            user_address = UserAddress(
                 user=user,
                 public_address=public_address,
                 wallet_type=form.cleaned_data["wallet_type"],
                 name=form.cleaned_data["name"],
                 account=form.cleaned_data["account"],
             )
-            address.save()
-            return redirect("addresses")
+            user_address.save()
+            return redirect("user_addresses")
 
     context = {
         "addresses_detail": addresses_detail,
-        "form1": AddressForm(),
+        "form1": UserAddressForm(),
     }
-    return render(request, "addresses.html", context)
+    return render(request, "user_addresses.html", context)
 
 
 @login_required()
 def address_detail(request: HttpRequest, public_address: str) -> HttpResponse:
-    address = Address.objects.get(public_address=public_address)
-    addresses = [address]
-    aggregated_assets = fetch_aggregated_assets(addresses)
-    total_eth_staking = get_aggregated_staking(addresses)
-    total_protocols = get_protocols_snapshots(addresses)
-    portfolio_value = calculate_total_value(addresses)
+    user_address = UserAddress.objects.get(public_address=public_address)
+    user_addresses = [user_address]
+    aggregated_assets = fetch_aggregated_assets(user_addresses)
+    total_eth_staking = get_aggregated_staking(user_addresses)
+    total_protocols = get_protocols_snapshots(user_addresses)
+    portfolio_value = calculate_total_value(user_addresses)
 
     last_snapshot = Snapshot.objects.first()
     last_snapshot_date = last_snapshot.date if last_snapshot else None  
@@ -235,13 +238,14 @@ def address_detail(request: HttpRequest, public_address: str) -> HttpResponse:
         "user": request.user,
         "assets": aggregated_assets,
         "staking": total_eth_staking,
-        "protocols": total_protocols,
-        "addresses": addresses,
+        "protocols": total_protocols["pool_data"],
+        "troves": total_protocols["troves"],
+        "user_addresses": user_addresses,
         "portfolio_value": f"{portfolio_value:,.2f}",
         "last_snapshot": last_snapshot_date,
-        "address": address,
+        "user_address": user_address,
     }
-    return render(request, "address_detail.html", context)
+    return render(request, "user_address_detail.html", context)
 
 
 @login_required()
@@ -251,11 +255,11 @@ def rewards(request: HttpRequest) -> HttpResponse:
     """
     user = cast(User, request.user)  
 
-    addresses = list(Address.objects.filter(user=user))   
+    user_addresses = list(UserAddress.objects.filter(user=user))   
 
     # Get ETH Staking rewards
     eth_rewards = Decimal(0) 
-    validators = get_last_validators(addresses)
+    validators = get_last_validators(user_addresses)
 
     if validators:
 
@@ -316,10 +320,10 @@ def refresh(request: HttpRequest) -> HttpResponse:
     snapshot_id = create_snapshot()
 
     task_group = group(
-        update_cryptocurrency_price.s(snapshot_id),
+        update_protocols.s(snapshot_id),
         update_assets_database.s(snapshot_id),
         update_staking_assets.s(snapshot_id),
-        update_protocols.s(snapshot_id),
+        update_cryptocurrency_price.s(snapshot_id),
     )
     task_group_result = task_group.apply_async()
     print(f"Task group ID: {task_group_result.id}")
@@ -372,14 +376,14 @@ def statistics(request: HttpRequest) -> HttpResponse:
     Show some statistics of the portfolio.
     """
     user = cast(User, request.user) 
-    addresses = list(Address.objects.filter(user=user)) 
+    user_addresses = list(UserAddress.objects.filter(user=user)) 
 
     # Statistic balance per type of wallet
     wallet_types = ["HOT", "COLD", "SMART"]
 
     wallet_values = {
         wallet: calculate_total_value(
-            list(filter(lambda addr: addr.wallet_type.name == wallet, addresses)) 
+            list(filter(lambda addr: addr.wallet_type.name == wallet, user_addresses)) 
         )
         for wallet in wallet_types
     }
@@ -388,7 +392,7 @@ def statistics(request: HttpRequest) -> HttpResponse:
     accounts_detail = []
     accounts = list(Account.objects.filter(user=user))  
     for account in accounts:
-        account_addresses = list(Address.objects.filter(account=account))  
+        account_addresses = list(UserAddress.objects.filter(account=account))  
         account_value = calculate_total_value(account_addresses)
         accounts_detail.append(
             {

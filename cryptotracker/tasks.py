@@ -3,10 +3,10 @@ from datetime import datetime
 from celery.exceptions import TimeoutError
 
 from cryptotracker.tokens import fetch_assets
-from cryptotracker.models import Address, Snapshot, Cryptocurrency, Price
+from cryptotracker.models import UserAddress, Snapshot, Cryptocurrency, Price
 from cryptotracker.staking import fetch_staking_assets
 from cryptotracker.utils import fetch_cryptocurrency_price
-from cryptotracker.protocols.liquity import update_lqty_pools
+from cryptotracker.protocols.liquity_pools import update_lqty_pools
 from cryptotracker.protocols.aave import update_aave_lending_pools
 from cryptotracker.protocols.uniswap import update_uniswap_v3_positions
 
@@ -64,11 +64,11 @@ def update_assets_database(snapshot_id: int) -> str:
     print("Updating assets database...")
     snapshot = Snapshot.objects.get(id=snapshot_id)
 
-    addresses = Address.objects.all()
-    for address in addresses:
+    user_addresses = UserAddress.objects.all()
+    for user_address in user_addresses:
         try:
-            print(f"Fetching assets for address: {address.public_address}")
-            fetch_assets(address, snapshot)
+            print(f"Fetching assets for user_address: {user_address.public_address}")
+            fetch_assets(user_address, snapshot)
         except TimeoutError:
             print("TimeoutError: Retrying...")
             continue
@@ -89,10 +89,10 @@ def update_staking_assets(snapshot_id: int) -> str:
     """
     snapshot = Snapshot.objects.get(id=snapshot_id)
 
-    addresses = Address.objects.all()
-    for address in addresses:
+    user_addresses = UserAddress.objects.all()
+    for user_address in user_addresses:
         try:
-            fetch_staking_assets(address, snapshot)
+            fetch_staking_assets(user_address, snapshot)
         except TimeoutError:
             print("TimeoutError: Retrying...")
             continue
@@ -113,13 +113,13 @@ def update_protocols(snapshot_id: int) -> str:
     """
     snapshot = Snapshot.objects.get(id=snapshot_id)
 
-    addresses = Address.objects.all()
-    for address in addresses:
+    user_addresses = UserAddress.objects.all()
+    for user_address in user_addresses:
         try:
-            print(f"Fetching protocols for address: {address}")
-            update_lqty_pools(address, snapshot)
-            update_aave_lending_pools(address, snapshot)
-            update_uniswap_v3_positions(address, snapshot)
+            print(f"Fetching protocols for user_address: {user_address}")
+            update_lqty_pools(user_address, snapshot)
+            update_aave_lending_pools(user_address, snapshot)
+            update_uniswap_v3_positions(user_address, snapshot)
         except TimeoutError:
             print("TimeoutError: Retrying...")
             continue

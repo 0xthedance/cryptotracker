@@ -22,11 +22,10 @@ class Cryptocurrency(models.Model):
 class CryptocurrencyNetwork(models.Model):
     cryptocurrency = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)
     network = models.ForeignKey("Network", on_delete=models.CASCADE)
-    address = models.CharField(max_length=42)
+    token_address = models.CharField(max_length=42)
 
     def __str__(self):
-        return f"{self.cryptocurrency.name} on {self.network.name} ({self.address})"
-
+        return f"{self.cryptocurrency.name} on {self.network.name} ({self.token_address})"
 
 class Price(models.Model):
     cryptocurrency = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)
@@ -53,7 +52,7 @@ class WalletType(models.Model):
         return self.name
 
 
-class Address(models.Model):
+class UserAddress(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     public_address = models.CharField(max_length=42, unique=True)
     account = models.ForeignKey("Account", on_delete=models.CASCADE)
@@ -63,12 +62,11 @@ class Address(models.Model):
     def __str__(self):
         return f"{self.public_address}"
 
-
 class SnapshotAssets(models.Model):
     cryptocurrency = models.ForeignKey(
         "CryptocurrencyNetwork", on_delete=models.CASCADE
     )
-    address = models.ForeignKey("Address", on_delete=models.CASCADE)
+    user_address = models.ForeignKey("UserAddress", on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=20, decimal_places=5)
     snapshot = models.ForeignKey("Snapshot", on_delete=models.CASCADE)
 
@@ -77,13 +75,13 @@ class SnapshotAssets(models.Model):
 
 
 class Validator(models.Model):
-    address = models.ForeignKey("Address", on_delete=models.CASCADE)
+    user_address = models.ForeignKey("UserAddress", on_delete=models.CASCADE)
     validator_index = models.IntegerField()
     public_key = models.CharField(max_length=128)
     activation_date = models.CharField()
 
     def __str__(self):
-        return f"Validator {self.validator_index} - {self.address}"
+        return f"Validator {self.validator_index} - {self.user_address}"
 
 
 class ValidatorSnapshot(models.Model):
@@ -94,7 +92,7 @@ class ValidatorSnapshot(models.Model):
     snapshot = models.ForeignKey("Snapshot", on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.validator.validator_index} - {self.balance}"
+        return f"{self.validator} - {self.balance}"
 
 
 class Protocol(models.Model):
@@ -104,7 +102,6 @@ class Protocol(models.Model):
     def __str__(self):
         return f"{self.name}"
 
-
 class ProtocolNetwork(models.Model):
     protocol = models.ForeignKey("Protocol", on_delete=models.CASCADE)
     network = models.ForeignKey("Network", on_delete=models.CASCADE)
@@ -112,39 +109,51 @@ class ProtocolNetwork(models.Model):
     def __str__(self):
         return f"{self.protocol.name} on {self.network.name}"
 
+class PoolType(models.Model):
+    name = models.CharField(max_length=20, unique=True)
+
+    def __str__(self):
+        return f"{self.name}"
 
 class Pool(models.Model):
-    name = models.CharField(max_length=20)
+    type = models.ForeignKey("PoolType", on_delete=models.CASCADE)
     protocol_network = models.ForeignKey("ProtocolNetwork", on_delete=models.CASCADE)
-    address = models.CharField(max_length=42)
+    contract_address = models.CharField(max_length=42)
+    description = models.CharField(max_length=42, blank=True, null=True)
 
     def __str__(self):
-        return f"{self.name} - {self.protocol_network}"
+        return f"{self.type} - {self.protocol_network}"
 
+class PoolPosition(models.Model):
+    pool = models.ForeignKey("Pool", on_delete=models.CASCADE) 
+    user_address = models.ForeignKey("UserAddress", on_delete=models.CASCADE)
+    position_id = models.CharField(max_length=20, blank= True, null=True)
 
-class PoolBalance(models.Model):
-    pool_instance = models.ForeignKey("PoolInstance", on_delete=models.CASCADE)
+    def __st__(self):
+        return f"{self.position_id}"
+    
+class PoolBalanceSnapshot(models.Model):
+    pool_position = models.ForeignKey("PoolPosition", on_delete=models.CASCADE)
     token = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=20, decimal_places=5)
     snapshot = models.ForeignKey("Snapshot", on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.pool.name} - {self.quantity} - {self.snapshot}"
+        return f"{self.pool_position} - {self.quantity} - {self.snapshot}"
 
 
-class PoolRewards(models.Model):
-    address = models.ForeignKey("Address", on_delete=models.CASCADE)
-    pool = models.ForeignKey("Pool", on_delete=models.CASCADE)
+class PoolRewardsSnapshot(models.Model):
+    pool_position = models.ForeignKey("PoolPosition", on_delete=models.CASCADE)
     token = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=20, decimal_places=5)
     snapshot = models.ForeignKey("Snapshot", on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.pool.name} - {self.quantity} - {self.snapshot}"
+        return f"{self.pool_position} - {self.quantity} - {self.snapshot}"
 
 
 class Trove(models.Model):
-    address = models.ForeignKey("Address", on_delete=models.CASCADE)
+    user_address = models.ForeignKey("UserAddress", on_delete=models.CASCADE)
     pool = models.ForeignKey("Pool", on_delete=models.CASCADE)
     trove_id = models.CharField(max_length=42)
     token = models.ForeignKey(
@@ -156,11 +165,12 @@ class TroveSnapshot(models.Model):
     trove = models.ForeignKey("Trove", on_delete=models.CASCADE)
     collateral = models.DecimalField(max_digits=20, decimal_places=5)
     debt = models.DecimalField(max_digits=20, decimal_places=5)
+    balance = models.DecimalField(max_digits=20, decimal_places=5)
     interest_rate = models.DecimalField(max_digits=5, decimal_places=2)
     snapshot = models.ForeignKey("Snapshot", on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.trove.pool.name} - {self.collateral} - {self.snapshot}"
+        return f"{self.trove} - {self.collateral} - {self.snapshot}"
 
 
 class Snapshot(models.Model):
@@ -171,5 +181,4 @@ class Snapshot(models.Model):
 
     def __str__(self):
         return f"{self.date}"
-
 

@@ -104,42 +104,44 @@
                 <tr>
                     <th>Pool</th>
                     <th>Network</th>
-                    <th>Token</th>
                     <th>Balance</th>
                     <th>Balance (EUR)</th>
                     <th>Rewards</th>
                 </tr>
             </thead>
             <tbody>
-                {% for pool, values in protocol_data.items %}
-                {% for token, token_values in values.balances.items %}
+                {% for pool in protocol_data %}
                 <tr>
-                    <td> {{pool}}</td>
-                    <td>{{ token_values.network }}</td>
-                    <td>{{ token }}</td>
-                    <td>{{ token_values.quantity|floatformat:2|intcomma }}</td>
-                    <td>{{ token_values.balance_eur|floatformat:2|intcomma }} €</td>
+                    <td>{{pool.pool_position.pool.type}}</td>
+                    <td>{{ pool.pool_position.pool.protocol_network.network }}</td>
+                    <td>
+                        {% for balance in pool.balances %}
+
+                        {{ balance.quantity|floatformat:2|intcomma }} {{ balance.token.symbol }}<br>
+                        {% endfor %}
+
+                    </td>
+                    <td>{{ pool.balance_eur|floatformat:2|intcomma }} €</td>
 
                     <td>
-                        {% for reward_token, reward_values in values.rewards.items %}
-                        + {{ reward_values.quantity|floatformat:2|intcomma }} {{ reward_token }}<br>
+                        {% for reward in pool.rewards %}
+                        + {{ reward.quantity|floatformat:2|intcomma }} {{ reward.token.symbol }}<br>
                         {% endfor %}
                     </td>
 
                 </tr>
 
                 {% endfor %}
-                {% endfor %}
+            {% endif %}
             </tbody>
         </table>
     </div>
     <div class="container">
 
-        {% if protocol_name == "Liquity V1" or protocol_name == "Liquity V2" %}
+        {% if protocol_name == "Liquity v2" %}
         <table class="table is-fullwidth is-striped my-6 " >
             <thead>
                 <tr>
-                    <th>Pool</th>
                     <th>Trove Id</th>
                     <th>Collateral</th>
                     <th>Debt</th>
@@ -148,12 +150,9 @@
                 </tr>
             </thead>
             <tbody>
-                {% for pool, values in protocol_data.items %}
-                {% if pool == "borrow" %}
-                    {% for pool_troves in values.troves %}
-                    {% for trove in pool_troves %}
+                    {% for trove in troves %}
                 <tr>
-                    <td >{{ pool }}</td>
+
                     <td>{{ trove.trove_id }}</td>
                     <td>{{ trove.collateral|floatformat:2|intcomma }} {{trove.token.symbol}}
                     </td>
@@ -161,32 +160,17 @@
                         {% if protocol_name == "Liquity V2" %}BOLD{% elif protocol_name == "Liquity V1" %}LUSD{% endif %}
                     </td>
                     <td>
-                        <span id="result-{{ trove.trove_id }}">
-                            <script>
-                                document.addEventListener("DOMContentLoaded", function() {
-                                    const collateral = {{ trove.collateral }};
-                                    const debt = {{ trove.debt }};
-                                    const result = troveId - collateral;
-                                    document.getElementById("result-{{ trove.trove_id }}").textContent = result.toFixed(2);
-                                });
-                            </script>
-                        </span>
+                        { trove.balance  }
                     </td>
                     <td>{{ trove.interest_rate|floatformat:2 }}%</td>
                 </tr>
 
+                    {% endfor %}
 
-                {% endfor %}
-                {% endfor %}
-
-                {% endif %}
-                {% endfor %}
             </tbody>
         </table>
         {% endif %}
-        {% else %}
-        <p>This portfolio has no data for {{ protocol_name }}.</p>
-        {% endif %}
+
     </div>
     {% endfor %}
 </section>

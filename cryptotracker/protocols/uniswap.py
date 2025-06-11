@@ -1,32 +1,30 @@
-from cryptotracker.models import Address, Snapshot, Cryptocurrency, Pool
+from cryptotracker.models import UserAddress, Snapshot, Cryptocurrency, Pool
 
 from cryptotracker.protocols.subgraph import send_graphql_query
-from cryptotracker.protocols.protocols import save_pool_balance, save_pool_rewards
+from cryptotracker.protocols.protocols import save_pool_snapshot
+from cryptotracker.constants import POOL_TYPES, PROTOCOLS,NETWORKS
+
 
 
 UNISWAP_V3_SUBGRAPH_ID= "5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV"
 
-PROTOCOL = "Uniswap V3"
-
-NETWORK = "Ethereum"
-
-POOL = "lending pool"
 
 
-def update_uniswap_v3_positions(address: Address, snapshot: Snapshot) -> None:
-    """Query all the troves for a given address using The Graph API and save snapshots"""
+def update_uniswap_v3_positions(user_address: UserAddress, snapshot: Snapshot) -> None:
+    """Query all the troves for a given user_address using The Graph API and save snapshots"""
     print("Quering Uniswap v3 subgraph")
-    pool = Pool.objects.get(
-        name=POOL,
-        protocol_network__protocol__name=PROTOCOL,
-        protocol_network__network__name=NETWORK,
-    )
+
+    AAVE_LENDING_POOL = Pool.objects.get(
+            type__name=POOL_TYPES["LENDING"],
+            protocol_network__protocol__name=PROTOCOLS["AAVE"],
+            protocol_network__network__name=NETWORKS["ETHEREUM"],
+        )
 
     query = f"""
     {{
         positions(
             where: {{
-                owner: "{address.public_address}",
+                owner: "{user_address.public_address}",
                 liquidity_gt: "0"}}
 
         ) {{
@@ -61,18 +59,21 @@ def update_uniswap_v3_positions(address: Address, snapshot: Snapshot) -> None:
         for key in [0,1]:
             token=Cryptocurrency.objects.get(symbol=position[f"token{key}"]["symbol"])
             if position[f"depositedToken{key}"] != "0":
-                save_pool_balance(
-                    address=address,
-                    pool=pool,
-                    token=token,
+                save_pool_snapshot(
+                    pool=AAVE_LENDING_POOL,
+                    address=user_address,
+                    token_symbol=token,
                     quantity=position[f"depositedToken{key}"],
                     snapshot=snapshot,
+                    pool_id = position["id"]
                 )
             if position[f"collectedFeesToken{key}"] != "0":
-                save_pool_rewards(
-                    address=address,
-                    pool=pool,
-                    token=token,
+                save_pool_snapshot(
+                    pool=AAVE_LENDING_POOL,
+                    address=user_address,
+                    token_symbol=token,
                     quantity=position[f"collectedFeesToken{key}"],
-                    snapshot=snapshot
+                    snapshot=snapshot,
+                    is_reward=True,
+                    pool_id= position["id"]
                 )

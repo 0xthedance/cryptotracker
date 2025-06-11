@@ -65,9 +65,9 @@
     </li>
 
 
-    <!-- Address Tab -->
-    <li class="{% if request.resolver_match.url_name == 'addresses' %}is-active{% endif %}">
-      <a href="{% url 'addresses' %}">
+    <!-- UserAddress Tab -->
+    <li class="{% if request.resolver_match.url_name == 'user_addresses' %}is-active{% endif %}">
+      <a href="{% url 'user_addresses' %}">
         <span class="icon"><i class="fas fa-address-book"></i></span>
         <span>Addresses</span>
       </a>

@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
-from cryptotracker.models import Account, Address, WalletType
+from cryptotracker.models import Account, UserAddress, WalletType
 from django.core.management import call_command
 
 
@@ -24,13 +24,13 @@ class CryptoTrackerViewTests(TestCase):
         # Create an account
         self.account = Account.objects.create(user=self.user, name="Test Account")
 
-        # Create an address
-        self.address = Address.objects.create(
+        # Create an user_address
+        self.user_address = UserAddress.objects.create(
             user=self.user,
             public_address="0x1234567890abcdef1234567890abcdef12345678",
             account=self.account,
             wallet_type=self.wallet_type,
-            name="Test Address",
+            name="Test UserAddress",
         )
 
     def test_home_view(self):
@@ -44,18 +44,18 @@ class CryptoTrackerViewTests(TestCase):
         self.assertContains(response, "Portfolio")
 
     def test_addresses_view(self):
-        response = self.client.get(reverse("addresses"))
+        response = self.client.get(reverse("user_addresses"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Addresses")
-        self.assertContains(response, self.address.public_address)
+        self.assertContains(response, self.user_address.public_address)
 
     def test_add_address_view(self):
         response = self.client.post(
-            reverse("addresses"),
+            reverse("user_addresses"),
             {
                 "public_address": "0x20e1012610b9212d45ef0A3af40843D5CA121FD0",
                 "wallet_type": self.wallet_type.id,
-                "name": "New Address",
+                "name": "New UserAddress",
                 "account": self.account.id,
             },
         )
@@ -63,14 +63,14 @@ class CryptoTrackerViewTests(TestCase):
         self.assertEqual(
             response.status_code, 302
         )  # Redirect after successful addition
-        self.assertTrue(Address.objects.filter(name="New Address").exists())
+        self.assertTrue(UserAddress.objects.filter(name="New UserAddress").exists())
 
     def test_delete_address_view(self):
-        response = self.client.post(reverse("delete_address", args=[self.address.id]))
+        response = self.client.post(reverse("delete_address", args=[self.user_address.id]))
         self.assertEqual(
             response.status_code, 302
         )  # Redirect after successful deletion
-        self.assertFalse(Address.objects.filter(id=self.address.id).exists())
+        self.assertFalse(UserAddress.objects.filter(id=self.user_address.id).exists())
 
     def test_accounts_view(self):
         response = self.client.get(reverse("accounts"))
