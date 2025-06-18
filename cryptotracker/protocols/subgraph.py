@@ -1,5 +1,8 @@
 import os
+
 import requests
+
+import logging
 
 API_KEY_THE_GRAPH = os.environ["API_KEY_THE_GRAPH"]
 
@@ -26,15 +29,15 @@ def send_graphql_query(id: str, query: str, variables=None) -> dict:
         return response.json()
 
     except requests.exceptions.HTTPError as e:
-        print(f"HTTP error occurred: {e} - Status Code: {response.status_code}")
+        logging.error(f"HTTP error occurred: {e} - Status Code: {response.status_code}")
     except requests.exceptions.ConnectionError:
-        print("Error connecting to the API.")
+        logging.error("Error connecting to the API.")
     except requests.exceptions.Timeout:
-        print("The request timed out.")
+        logging.error("The request timed out.")
     except requests.exceptions.RequestException as e:
-        print(f"An error occurred: {e}")
+        logging.error(f"An error occurred: {e}")
     except Exception as e:
-        print(f"Unexpected error: {e}")
+        logging.error(f"Unexpected error: {e}")
 
     # Return an empty dictionary in case of an error
     return {}

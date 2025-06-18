@@ -25,5 +25,30 @@
   <p>This portfolio has no rewards.</p>
   {% endif %}
 
+    {% if pool_rewards %}
+    <h2 class="subtitle mt-4">Pool Rewards</h2>
+    <table class="table is-fullwidth is-striped">
+        <thead>
+            <tr>
+                <th>Date</th>
+                {% for pool in pool_rewards.keys %}
+                <th>{{ pool.type.name }}-{{pool.protocol_network.protocol}}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for index, date in pool_rewards.months %}
+            <tr>
+                <td>{{ date }}</td>
+                {% for pool in pool_rewards.keys %}
+                <td>{{ pool_rewards[pool].rewards[index] }} EUR</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
 </div>
+
 {% endblock content %}

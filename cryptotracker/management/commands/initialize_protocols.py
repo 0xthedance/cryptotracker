@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
-from cryptotracker.models import Network, Pool, Protocol, ProtocolNetwork, PoolType
+
+from cryptotracker.models import Network, Pool, PoolType, Protocol, ProtocolNetwork
 
 PROTOCOLS = [
     {
@@ -17,8 +18,8 @@ PROTOCOLS = [
                 "image": "cryptotracker/logos/liquity_stability_pool.png",
             },
             {
-                "name": "borrow",
-                "contract_address": "0x7b",
+                "name": "borrowing",
+                "contract_address": None,
                 "image": "cryptotracker/logos/liquity_borrow.png",
             },
         ],
@@ -28,8 +29,8 @@ PROTOCOLS = [
         "image": "cryptotracker/logos/liquity_v2.png",
         "Ethereum": [
             {
-                "name": "borrow",
-                "contract_address": "0x0x",
+                "name": "borrowing",
+                "contract_address": None,
                 "image": "cryptotracker/logos/liquity_borrow_v2.png",
             },
             {
@@ -53,7 +54,7 @@ PROTOCOLS = [
                 "name": "stability pool",
                 "contract_address": "0xd442e41019b7f5c4dd78f50dc03726c446148695",
                 "image": "cryptotracker/logos/liquity_stability_pool_reth.png",
-                "description": "rETH"
+                "description": "rETH",
             },
         ],
     },
@@ -110,22 +111,26 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         # Create or get PoolTypes
 
-        pool_types = ["staking", "stability pool", "borrow", "staking", "lending", "AMM pool"]
+        pool_types = [
+            "staking",
+            "stability pool",
+            "borrowing",
+            "staking",
+            "lending",
+            "AMM pool",
+        ]
         for pool_type in pool_types:
-
             obj, created = PoolType.objects.get_or_create(name=pool_type)
 
             if created:
-                self.stdout.write(
-                    self.style.SUCCESS(f"Added PoolType: {pool_type}")
-                )
+                self.stdout.write(self.style.SUCCESS(f"Added PoolType: {pool_type}"))
             else:
                 self.stdout.write(
                     self.style.WARNING(f"PoolType '{pool_type}' already exists")
                 )
 
         networks = Network.objects.all()
-        
+
         for protocol_data in PROTOCOLS:
             # Create or get the Protocol
             protocol, created_protocol = Protocol.objects.get_or_create(
@@ -176,7 +181,7 @@ class Command(BaseCommand):
                 # Create or get the Pools for the protocol and network
                 for pool_data in protocol_data[network.name]:
                     pool, created_pool = Pool.objects.get_or_create(
-                        type=PoolType.objects.get(name = pool_data["name"]),
+                        type=PoolType.objects.get(name=pool_data["name"]),
                         protocol_network=protocol_network,
                         contract_address=pool_data["contract_address"],
                         defaults={},

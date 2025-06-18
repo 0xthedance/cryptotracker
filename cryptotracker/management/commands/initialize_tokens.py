@@ -1,4 +1,5 @@
 from django.core.management.base import BaseCommand
+
 from cryptotracker.models import Cryptocurrency, CryptocurrencyNetwork, Network
 
 TOKENS = [
@@ -7,11 +8,11 @@ TOKENS = [
         "symbol": "ETH",
         "image": "cryptotracker/logos/ethereum.png",
         "token_address": {
-            "Ethereum": "0x",
+            "Ethereum": None,
             "Avalanche": None,
-            "Arbitrum": "0x",
-            "Gnosis Chain": "0x",
-            "Base": "0x",
+            "Arbitrum": None,
+            "Gnosis Chain": None,
+            "Base": None,
         },
     },
     {
@@ -91,11 +92,11 @@ TOKENS = [
         "symbol": "BOLD",
         "image": "cryptotracker/logos/bold.png",
         "token_address": {
-            "Ethereum": "0xb01dd87b29d187f3e3a4bf6cdaebfb97f3d9ab98",
-            "Avalanche": None,
-            "Arbitrum": None,
+            "Ethereum": "0x6440f144b7e50D6a8439336510312d2F54beB01D",
+            "Avalanche": "0x03569CC076654F82679C4BA2124D64774781B01D",
+            "Arbitrum": "0x03569CC076654F82679C4BA2124D64774781B01D",
             "Gnosis Chain": None,
-            "Base": None,
+            "Base": "0x03569CC076654F82679C4BA2124D64774781B01D",
         },
     },
     {
@@ -134,7 +135,7 @@ TOKENS = [
             "Base": None,
         },
     },
-        {
+    {
         "name": "usd-coin",
         "symbol": "USDC",
         "image": "cryptotracker/logos/USDC.png",

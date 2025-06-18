@@ -10,7 +10,7 @@ class AccountForm(ModelForm):
         fields = ["name"]
 
     def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop("user", None)  # Pass the user when initializing the form
+        self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
 
     def clean_name(self):
@@ -34,7 +34,6 @@ class UserAddressForm(ModelForm):
         fields = ["public_address", "account", "wallet_type", "name"]
 
     def clean_public_address(self):
-
         cleaned_data = super().clean()
         public_address = cleaned_data["public_address"]
 

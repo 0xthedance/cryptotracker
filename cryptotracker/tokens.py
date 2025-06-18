@@ -1,14 +1,15 @@
 from decimal import Decimal
+
 from ape import Contract, networks
 
-from cryptotracker.utils import get_last_price
 from cryptotracker.models import (
-    UserAddress,
-    SnapshotAssets,
     CryptocurrencyNetwork,
     Network,
     Snapshot,
+    SnapshotAssets,
+    UserAddress,
 )
+from cryptotracker.utils import get_last_price
 
 
 def fetch_assets(user_address: UserAddress, snapshot: Snapshot) -> None:
@@ -24,7 +25,6 @@ def fetch_assets(user_address: UserAddress, snapshot: Snapshot) -> None:
             public_address = user_address.public_address
             # Fetch tokens balance
             for token in CryptocurrencyNetwork.objects.filter(network=network):
-                print(token)
                 if token.cryptocurrency.name == "ethereum":
                     token_asset = provider.get_balance(public_address)
                 else:
@@ -32,7 +32,6 @@ def fetch_assets(user_address: UserAddress, snapshot: Snapshot) -> None:
                     token_asset = token_contract.balanceOf(public_address)
 
                 if token_asset != 0:
-
                     asset_snapshot = SnapshotAssets(
                         cryptocurrency=token,
                         user_address=user_address,

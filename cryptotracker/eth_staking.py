@@ -1,9 +1,9 @@
-from decimal import Decimal
 from datetime import datetime
-from typing import Optional, List, Dict, Union
+from decimal import Decimal
+from typing import Dict, List, Optional, Union
 
+from cryptotracker.models import Snapshot, UserAddress, Validator, ValidatorSnapshot
 from cryptotracker.utils import APIquery, get_last_price
-from cryptotracker.models import Validator, ValidatorSnapshot, Snapshot, UserAddress
 
 BEACONCHAN_API = "https://beaconcha.in/api/v1/validator"
 
@@ -37,7 +37,9 @@ class ValidatorDetails:
         )
 
 
-def get_last_validators(user_addresses: List[UserAddress]) -> Optional[List[ValidatorSnapshot]]:
+def get_last_validators(
+    user_addresses: List[UserAddress],
+) -> Optional[List[ValidatorSnapshot]]:
     """
     Get the last staking assets for a list of user_addresses.
     Args:
@@ -54,7 +56,9 @@ def get_last_validators(user_addresses: List[UserAddress]) -> Optional[List[Vali
     return list(last_validators)
 
 
-def get_aggregated_staking(user_addresses: List[UserAddress]) -> Optional[Dict[str, Union[int, Decimal]] ]:
+def get_aggregated_staking(
+    user_addresses: List[UserAddress],
+) -> Optional[Dict[str, Union[int, Decimal]]]:
     """
     Get the aggregated staking information for a list of user_addresses.
     Args:
@@ -62,7 +66,7 @@ def get_aggregated_staking(user_addresses: List[UserAddress]) -> Optional[Dict[s
     Returns:
         dict: A dictionary containing the aggregated staking information or None if no validators exist.
     """
-    total_eth_staking: Dict[str, Union[int, Decimal]]  = {}
+    total_eth_staking: Dict[str, Union[int, Decimal]] = {}
     num_validators = 0
     balance = Decimal(0)
     rewards = Decimal(0)

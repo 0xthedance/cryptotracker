@@ -1,10 +1,11 @@
+import logging
+from datetime import date, datetime
 from decimal import Decimal
-from datetime import datetime, date
-from typing import Optional, Dict, List
+from typing import Dict, List, Optional
 
 import requests
 
-from cryptotracker.models import Price, Cryptocurrency
+from cryptotracker.models import Cryptocurrency, Price
 
 
 def APIquery(url: str, params: Dict) -> Optional[Dict]:
@@ -19,11 +20,11 @@ def APIquery(url: str, params: Dict) -> Optional[Dict]:
     try:
         response = requests.get(url, params=params)
     except requests.exceptions.RequestException as e:
-        print(f"Request failed: {e}")
+        logging.error(f"Request failed: {e}")
         return None
 
     if response.status_code != 200:
-        print(
+        logging.error(
             f"{url} request {response.url} failed "
             f"with HTTP status code {response.status_code} and text "
             f"{response.text}",
@@ -32,7 +33,9 @@ def APIquery(url: str, params: Dict) -> Optional[Dict]:
     return response.json()
 
 
-def fetch_historical_price(crypto_id: str, date: date, currency: str = "eur") -> Optional[Decimal]:
+def fetch_historical_price(
+    crypto_id: str, date: date, currency: str = "eur"
+) -> Optional[Decimal]:
     """
     Fetches historical price data for a cryptocurrency from the Coingecko API.
     Args:
@@ -51,7 +54,9 @@ def fetch_historical_price(crypto_id: str, date: date, currency: str = "eur") ->
     return Decimal(data["market_data"]["current_price"][currency])
 
 
-def fetch_cryptocurrency_price(crypto_ids: List[str]) -> Optional[Dict[str, Dict[str, Decimal]]]:
+def fetch_cryptocurrency_price(
+    crypto_ids: List[str],
+) -> Optional[Dict[str, Dict[str, Decimal]]]:
     """
     Fetches the current price of each cryptocurrency from the Coingecko API.
     Args:
@@ -79,7 +84,7 @@ def convertWeiIntStr(value: int) -> str:
     ETH_THRESHOLD = 1 / Decimal(1e3)
     GWEI_THRESHOLD = 1 / Decimal(1e12)
 
-    value_decimal = Decimal(value) 
+    value_decimal = Decimal(value)
 
     if value_decimal < GWEI_THRESHOLD:
         return f"{value_decimal * Decimal(1e18).normalize():,.3f} wei"

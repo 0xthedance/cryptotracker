@@ -1,88 +1,101 @@
+import logging
 from ape import Contract, networks
+from decimal import Decimal
 
-from cryptotracker.models import Pool, Snapshot, UserAddress, Cryptocurrency, Trove, TroveSnapshot, PoolType
-from cryptotracker.constants import NETWORKS,POOL_TYPES,PROTOCOLS
+from cryptotracker.models import (
+    Pool,
+    Snapshot,
+    UserAddress,
+    Cryptocurrency,
+    Trove,
+    TroveSnapshot,
+)
+from cryptotracker.constants import NETWORKS, POOL_TYPES, PROTOCOLS
 from cryptotracker.protocols.protocols import save_pool_snapshot
 from cryptotracker.protocols.subgraph import send_graphql_query
 from cryptotracker.utils import get_last_price
-
-
+from cryptotracker.constants import ETHEREUM_RCP
 
 
 def get_proxy_staking_contract(user_address: UserAddress) -> str:
-
-    LQTY_V2_STAKING =Pool.objects.get(
+    LQTY_V2_STAKING = Pool.objects.get(
         type__name=POOL_TYPES["STAKING"],
         protocol_network__protocol__name=PROTOCOLS["LIQUITY V2"],
         protocol_network__network__name=NETWORKS["ETHEREUM"],
     )
 
-    with networks.parse_network_choice("ethereum:mainnet:alchemy"):
+    with networks.parse_network_choice(ETHEREUM_RCP):
         lqty_govern_contract = Contract(LQTY_V2_STAKING.contract_address)
         return lqty_govern_contract.deriveUserProxyAddress(user_address.public_address)
 
 
-def get_lqty_stakes(address: str, pool: Pool, snapshot: Snapshot, user_address: UserAddress) -> None:
+def get_lqty_stakes(
+    address: str, pool: Pool, snapshot: Snapshot, user_address: UserAddress
+) -> None:
     """
     Helper to query the LQTY stakes of a given public user_address using the staking pool v1 and save the snapshot
     Args:
-        public_address (str): The user_address to check.
+        address (str): The address to check the stakes ( a proxy address in LQTY v2 and user address in LQTY v1).
+        pool (Pool): The pool object to save the snapshot.
+        snapshot (Snapshot): The snapshot object to associate with the updates.
+        user_address (UserAddress): The user_address object to associate with the updates.
     """
-    LQTY_V1_STAKING =Pool.objects.get(
+    LQTY_V1_STAKING = Pool.objects.get(
         type__name=POOL_TYPES["STAKING"],
         protocol_network__protocol__name=PROTOCOLS["LIQUITY V1"],
         protocol_network__network__name=NETWORKS["ETHEREUM"],
     )
-    
-    with networks.parse_network_choice("ethereum:mainnet:alchemy"):
+
+    with networks.parse_network_choice(ETHEREUM_RCP):
         contract = Contract(LQTY_V1_STAKING.contract_address)
         lqty_stakes = contract.stakes(address)
         if not lqty_stakes:
             return
         eth_rewards = contract.getPendingETHGain(address)
         lusd_rewards = contract.getPendingLUSDGain(address)
-    
+
     save_pool_snapshot(
-        pool,
-        user_address,
-        "LQTY",
-        lqty_stakes / 1e18,
-        snapshot,
+        pool=pool,
+        address=user_address,
+        token_symbol="LQTY",
+        quantity=lqty_stakes / 1e18,
+        snapshot=snapshot,
     )
     # Save PoolRewardsSnapshot
     save_pool_snapshot(
-        pool,
-        user_address,
-        "ETH",
-        eth_rewards / 1e18,
-        snapshot,
-        True,
+        pool=pool,
+        address=user_address,
+        token_symbol="ETH",
+        quantity=eth_rewards / 1e18,
+        snapshot=snapshot,
+        is_reward=True,
     )
     save_pool_snapshot(
-        pool,
-        user_address,
-        "LUSD",
-        lusd_rewards / 1e18,
-        snapshot,
-        True,
+        pool=pool,
+        address=user_address,
+        token_symbol="LUSD",
+        quantity=lusd_rewards / 1e18,
+        snapshot=snapshot,
+        is_reward=True,
     )
 
 
-def update_lqty_v1_staking(
-    user_address: UserAddress, snapshot:Snapshot
-) -> None: 
+def update_lqty_v1_staking(user_address: UserAddress, snapshot: Snapshot) -> None:
     """
     Saves a snapshot of the total LQTY v1 stakes of a given user_address.
     Args:
-        user_address (str): The user_address to check.
+        user_address (UserAddress): The user_address to check.
+        snapshot (Snapshot): The snapshot object to associate with the updates.
     """
-    print("update_lqty_staking")
-    LQTY_V1_STAKING =Pool.objects.get(
+    logging.info("Updating LQTY V1 staking")
+    LQTY_V1_STAKING = Pool.objects.get(
         type__name=POOL_TYPES["STAKING"],
         protocol_network__protocol__name=PROTOCOLS["LIQUITY V1"],
         protocol_network__network__name=NETWORKS["ETHEREUM"],
     )
-    get_lqty_stakes(user_address.public_address, LQTY_V1_STAKING, snapshot, user_address)
+    get_lqty_stakes(
+        user_address.public_address, LQTY_V1_STAKING, snapshot, user_address
+    )
 
 
 def update_lqty_v2_staking(user_address: UserAddress, snapshot: Snapshot) -> None:
@@ -91,18 +104,17 @@ def update_lqty_v2_staking(user_address: UserAddress, snapshot: Snapshot) -> Non
     Args:
         user_address (UserAddress): The user_address to check.
     """
-    print("update_lqty_staking_v2")
+    logging.info("Updating LQTY V2 staking")
 
-    LQTY_V2_STAKING =Pool.objects.get(
+    LQTY_V2_STAKING = Pool.objects.get(
         type__name=POOL_TYPES["STAKING"],
         protocol_network__protocol__name=PROTOCOLS["LIQUITY V2"],
         protocol_network__network__name=NETWORKS["ETHEREUM"],
     )
 
     proxy_contract = get_proxy_staking_contract(user_address)
-    print("get stakes")
+    logging.info(f"Proxy contract for {user_address.public_address}: {proxy_contract}")
     get_lqty_stakes(proxy_contract, LQTY_V2_STAKING, snapshot, user_address)
-
 
 
 def update_lqty_stability_pool(user_address: UserAddress, snapshot: Snapshot) -> None:
@@ -111,16 +123,15 @@ def update_lqty_stability_pool(user_address: UserAddress, snapshot: Snapshot) ->
     Args:
         user_address (str): The user_address to check.
     """
-    print("update_lqty_stability_pool_v1")
+    logging.info(" Updating LQTY V1 stability pool")
 
-    LQTY_V1_STABILITY_POOL =Pool.objects.get(
+    LQTY_V1_STABILITY_POOL = Pool.objects.get(
         type__name=POOL_TYPES["STABILITY_POOL"],
         protocol_network__protocol__name=PROTOCOLS["LIQUITY V1"],
         protocol_network__network__name=NETWORKS["ETHEREUM"],
     )
-    print(LQTY_V1_STABILITY_POOL)
 
-    with networks.parse_network_choice("ethereum:mainnet:alchemy"):
+    with networks.parse_network_choice(ETHEREUM_RCP):
         contract = Contract(LQTY_V1_STABILITY_POOL.contract_address)
         deposits = contract.deposits(user_address.public_address)
         if not deposits.initialValue:
@@ -128,53 +139,53 @@ def update_lqty_stability_pool(user_address: UserAddress, snapshot: Snapshot) ->
         ETH_gains = contract.getDepositorETHGain(user_address.public_address)
         LQTY_gains = contract.getDepositorLQTYGain(user_address.public_address)
 
-    print("Saving")
     # Save PoolBalanceSnapshot
     save_pool_snapshot(
-        LQTY_V1_STABILITY_POOL,
-        user_address,
-        "LUSD",
-        deposits.initialValue / 1e18,
-        snapshot,
+        pool=LQTY_V1_STABILITY_POOL,
+        address=user_address,
+        token_symbol="LUSD",
+        quantity=deposits.initialValue / 1e18,
+        snapshot=snapshot,
     )
     # Save PoolRewardsSnapshot
     save_pool_snapshot(
-        LQTY_V1_STABILITY_POOL,
-        user_address,
-        "ETH",
-        ETH_gains / 1e18,
-        snapshot,
-        True,
+        pool=LQTY_V1_STABILITY_POOL,
+        address=user_address,
+        token_symbol="ETH",
+        quantity=ETH_gains / 1e18,
+        snapshot=snapshot,
+        is_reward=True,
     )
     save_pool_snapshot(
-        LQTY_V1_STABILITY_POOL,
-        user_address,
-        "LQTY",
-        LQTY_gains / 1e18,
-        snapshot,
-        True,
+        pool=LQTY_V1_STABILITY_POOL,
+        address=user_address,
+        token_symbol="LQTY",
+        quantity=LQTY_gains / 1e18,
+        snapshot=snapshot,
+        is_reward=True,
     )
 
 
-def update_lqty_stability_pool_v2(user_address: UserAddress, snapshot: Snapshot) -> None:
+def update_lqty_stability_pool_v2(
+    user_address: UserAddress, snapshot: Snapshot
+) -> None:
     """
     Saves a snapshot of the participation of a given user_address in the three LIQUITY V2 stabiity pools .
     Args:
         user_address (str): The user_address to check.
     """
-    print("update_lqty_stability_pool_v2")
+    logging.info("Updating LQTY V2 stability pool")
 
-    LQTY_V2_STABILITY_POOLS =Pool.objects.filter(
+    LQTY_V2_STABILITY_POOLS = Pool.objects.filter(
         type__name=POOL_TYPES["STABILITY_POOL"],
         protocol_network__protocol__name=PROTOCOLS["LIQUITY V2"],
         protocol_network__network__name=NETWORKS["ETHEREUM"],
     )
 
-    with networks.parse_network_choice("ethereum:mainnet:alchemy"):
+    with networks.parse_network_choice(ETHEREUM_RCP):
         for pool in LQTY_V2_STABILITY_POOLS:
             contract = Contract(pool.contract_address)
             deposits = contract.deposits(user_address.public_address)
-            print(deposits)
             if not deposits:
                 continue
             coll_gains = contract.getDepositorCollGain(user_address.public_address)
@@ -182,32 +193,34 @@ def update_lqty_stability_pool_v2(user_address: UserAddress, snapshot: Snapshot)
 
             # Save PoolBalanceSnapshot
             save_pool_snapshot(
-                pool,
-                user_address,
-                "BOLD",
-                deposits / 1e18,
-                snapshot,
+                pool=pool,
+                address=user_address,
+                token_symbol="BOLD",
+                quantity=deposits / 1e18,
+                snapshot=snapshot,
             )
-            # Save PoolRewardsSnapshot gains (BOLD) and collatera (WETH, wstETH and rETH )
+            # Save PoolRewardsSnapshot gains (BOLD) and collateral (WETH, wstETH, and rETH)
             save_pool_snapshot(
-                pool,
-                user_address,
-                "BOLD",
-                yield_gains / 1e18,
-                snapshot,
-                True,
-            )
-            token_symbol =  pool.description
-            print(token_symbol)
-            save_pool_snapshot(
-                pool,
-                user_address,
-                token_symbol,
-                coll_gains / 1e18,
-                snapshot,
-                True,
+                pool=pool,
+                address=user_address,
+                token_symbol="BOLD",
+                quantity=yield_gains / 1e18,
+                snapshot=snapshot,
+                is_reward=True,
             )
 
+            token_symbol = pool.description
+            if not token_symbol:
+                continue
+
+            save_pool_snapshot(
+                pool=pool,
+                address=user_address,
+                token_symbol=token_symbol,
+                quantity=coll_gains / 1e18,
+                snapshot=snapshot,
+                is_reward=True,
+            )
 
 
 LQTY_V2_SUBGRAPH_ID = "6bg574MHrEZXopJDYTu7S7TAvJKEMsV111gpKLM7ZCA7"
@@ -216,11 +229,11 @@ LQTY_V2_SUBGRAPH_ID = "6bg574MHrEZXopJDYTu7S7TAvJKEMsV111gpKLM7ZCA7"
 def get_troves(user_address: UserAddress, snapshot: Snapshot) -> None:
     """Query all the troves for a given user_address using The Graph API"""
 
-    pool =Pool.objects.get(
-            type__name=POOL_TYPES["BORROW"],
-            protocol_network__protocol__name=PROTOCOLS["LIQUITY V2"],
-            protocol_network__network__name=NETWORKS["ETHEREUM"],
-        )
+    pool = Pool.objects.get(
+        type__name=POOL_TYPES["BORROWING"],
+        protocol_network__protocol__name=PROTOCOLS["LIQUITY V2"],
+        protocol_network__network__name=NETWORKS["ETHEREUM"],
+    )
     query = f"""
     {{
         troves(
@@ -242,7 +255,7 @@ def get_troves(user_address: UserAddress, snapshot: Snapshot) -> None:
         }}
     }}
     """
-
+    logging.info("Fetching troves for user: %s", user_address.public_address)
     troves = send_graphql_query(LQTY_V2_SUBGRAPH_ID, query)
     if not troves or not troves.get("data") or not troves["data"].get("troves"):
         return
@@ -263,19 +276,20 @@ def get_troves(user_address: UserAddress, snapshot: Snapshot) -> None:
                 "token": token,
             },
         )
-        collateral = int(trove["deposit"]) / 1e18
-        debt=int(trove["debt"]) / 1e18
+        collateral = Decimal(trove["deposit"]) / Decimal(1e18)
+        debt = Decimal(trove["debt"]) / Decimal(1e18)
 
-        collateral_eur = collateral * get_last_price(token.name,snapshot.date)
-        debt_eur = debt * get_last_price("liquity-bold",snapshot.date)
-        balance = (collateral_eur - debt_eur)
+        collateral_eur = collateral * get_last_price(token.name, snapshot.date)
+
+        debt_eur = debt * get_last_price("liquity-bold", snapshot.date)
+        balance = collateral_eur - debt_eur
 
         TroveSnapshot.objects.create(
             trove=trove_obj,
             collateral=collateral,
             debt=debt,
-            balance = balance,
-            interest_rate=int(trove["interestRate"]) / 1e16,
+            balance=balance,
+            interest_rate=Decimal(trove["interestRate"]) / Decimal(1e16),
             snapshot=snapshot,
         )
 

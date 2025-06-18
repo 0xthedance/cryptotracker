@@ -1,6 +1,10 @@
+import logging
+
 from ape import Contract, networks
-from cryptotracker.models import Pool, UserAddress, ProtocolNetwork, Snapshot
+
+from cryptotracker.models import Pool, ProtocolNetwork, Snapshot, UserAddress
 from cryptotracker.protocols.protocols import save_pool_snapshot
+from cryptotracker.constants import POOL_TYPES, PROTOCOLS
 
 
 def update_aave_lending_pools(user_address: UserAddress, snapshot: Snapshot) -> None:
@@ -10,15 +14,14 @@ def update_aave_lending_pools(user_address: UserAddress, snapshot: Snapshot) -> 
         user_address (UserAddress): The user_address to check.
 
     """
-    print("Serching aave pools")
-    protocols = ProtocolNetwork.objects.filter(protocol__name="Aave V3")
+    logging.info("Searching AAVE pools")
+    protocols = ProtocolNetwork.objects.filter(protocol__name=PROTOCOLS["AAVE V3"])
     pools = Pool.objects.filter(
         protocol_network__in=protocols,
-        type__name="lending pool",
+        type__name=POOL_TYPES["LENDING"],
     )
 
     for pool in pools:
-
         network = pool.protocol_network.network
 
         with networks.parse_network_choice(network.url_rpc):
@@ -29,9 +32,11 @@ def update_aave_lending_pools(user_address: UserAddress, snapshot: Snapshot) -> 
             for token in tokens:
                 token_address = token[1]
                 try:
-                    aave_pool_data = provider.getUserReserveData(token_address, user_address.public_address)
+                    aave_pool_data = provider.getUserReserveData(
+                        token_address, user_address.public_address
+                    )
                 except Exception as e:
-                    print(f"Error fetching data for {token_address}: {e}")
+                    logging.error(f"Error fetching data for {token_address}: {e}")
                     aave_pool_data = None
 
                 if not aave_pool_data or aave_pool_data.currentATokenBalance == 0:
@@ -46,4 +51,3 @@ def update_aave_lending_pools(user_address: UserAddress, snapshot: Snapshot) -> 
                     aave_pool_data.currentATokenBalance / 1e18,
                     snapshot,
                 )
-

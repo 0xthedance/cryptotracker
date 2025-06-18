@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
-from cryptotracker.models import Network
 
+from cryptotracker.models import Network
 
 NETWORKS = [
     {

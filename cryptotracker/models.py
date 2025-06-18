@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.db import models
+from django.db.models import Sum
 
 # Create your models here.
 
@@ -25,7 +26,10 @@ class CryptocurrencyNetwork(models.Model):
     token_address = models.CharField(max_length=42)
 
     def __str__(self):
-        return f"{self.cryptocurrency.name} on {self.network.name} ({self.token_address})"
+        return (
+            f"{self.cryptocurrency.name} on {self.network.name} ({self.token_address})"
+        )
+
 
 class Price(models.Model):
     cryptocurrency = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)
@@ -45,7 +49,6 @@ class Account(models.Model):
 
 
 class WalletType(models.Model):
-
     name = models.CharField(max_length=20, unique=True)
 
     def __str__(self):
@@ -61,6 +64,7 @@ class UserAddress(models.Model):
 
     def __str__(self):
         return f"{self.public_address}"
+
 
 class SnapshotAssets(models.Model):
     cryptocurrency = models.ForeignKey(
@@ -102,6 +106,7 @@ class Protocol(models.Model):
     def __str__(self):
         return f"{self.name}"
 
+
 class ProtocolNetwork(models.Model):
     protocol = models.ForeignKey("Protocol", on_delete=models.CASCADE)
     network = models.ForeignKey("Network", on_delete=models.CASCADE)
@@ -109,11 +114,13 @@ class ProtocolNetwork(models.Model):
     def __str__(self):
         return f"{self.protocol.name} on {self.network.name}"
 
+
 class PoolType(models.Model):
     name = models.CharField(max_length=20, unique=True)
 
     def __str__(self):
         return f"{self.name}"
+
 
 class Pool(models.Model):
     type = models.ForeignKey("PoolType", on_delete=models.CASCADE)
@@ -124,14 +131,16 @@ class Pool(models.Model):
     def __str__(self):
         return f"{self.type} - {self.protocol_network}"
 
+
 class PoolPosition(models.Model):
-    pool = models.ForeignKey("Pool", on_delete=models.CASCADE) 
+    pool = models.ForeignKey("Pool", on_delete=models.CASCADE)
     user_address = models.ForeignKey("UserAddress", on_delete=models.CASCADE)
-    position_id = models.CharField(max_length=20, blank= True, null=True)
+    position_id = models.CharField(max_length=20, blank=True, null=True)
 
     def __st__(self):
         return f"{self.position_id}"
-    
+
+
 class PoolBalanceSnapshot(models.Model):
     pool_position = models.ForeignKey("PoolPosition", on_delete=models.CASCADE)
     token = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)
@@ -181,4 +190,3 @@ class Snapshot(models.Model):
 
     def __str__(self):
         return f"{self.date}"
-

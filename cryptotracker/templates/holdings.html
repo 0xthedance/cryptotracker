@@ -153,14 +153,14 @@
                     {% for trove in troves %}
                 <tr>
 
-                    <td>{{ trove.trove_id }}</td>
-                    <td>{{ trove.collateral|floatformat:2|intcomma }} {{trove.token.symbol}}
+                    <td>{{ trove.trove.trove_id }}</td>
+                    <td>{{ trove.collateral|floatformat:2|intcomma }} {{trove.trove.token.symbol}}
                     </td>
                     <td>{{ trove.debt|floatformat:2|intcomma }} 
-                        {% if protocol_name == "Liquity V2" %}BOLD{% elif protocol_name == "Liquity V1" %}LUSD{% endif %}
+                        BOLD
                     </td>
                     <td>
-                        { trove.balance  }
+                        {{ trove.balance |floatformat:2|intcomma }} EUR
                     </td>
                     <td>{{ trove.interest_rate|floatformat:2 }}%</td>
                 </tr>

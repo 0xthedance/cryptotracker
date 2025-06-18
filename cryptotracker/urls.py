@@ -1,24 +1,22 @@
 from django.urls import include, path
 
+from cryptotracker.form import AccountForm, EditUserAddressForm
 from cryptotracker.models import Account, UserAddress
-
-from cryptotracker.form import EditUserAddressForm, AccountForm
-
 from cryptotracker.views import (
+    accounts,
     address_detail,
-    user_addresses,
+    check_task_status,
     delete_object,
+    edit_object,
     home,
     portfolio,
-    sign_up,
     refresh,
-    staking,
-    edit_object,
-    accounts,
-    waiting_page,
-    check_task_status,
     rewards,
+    sign_up,
+    staking,
     statistics,
+    user_addresses,
+    waiting_page,
 )
 
 urlpatterns = [
@@ -32,7 +30,11 @@ urlpatterns = [
     path(
         "user_address/<str:id>/delete/",
         delete_object,
-        {"model": UserAddress, "redirect_url": "user_addresses", "object_type": "UserAddress"},
+        {
+            "model": UserAddress,
+            "redirect_url": "user_addresses",
+            "object_type": "UserAddress",
+        },
         name="delete_address",
     ),
     path(

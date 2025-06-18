@@ -1,41 +1,33 @@
-from django.contrib.auth import login, logout
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import UserCreationForm
-from django.shortcuts import redirect, render, get_object_or_404
-from django.urls import reverse
-from django.http import JsonResponse, HttpRequest, HttpResponse
-from django.contrib.auth.models import User
-from typing import List, cast, Type, Any
-
-from web3 import Web3
-
 from decimal import Decimal
+import logging
+from typing import Any, List, Type, cast
 
 from celery import group
 from celery.result import GroupResult
+from django.contrib.auth import login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
+from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from web3 import Web3
 
-from cryptotracker.form import UserAddressForm, AccountForm
-from cryptotracker.models import Snapshot, UserAddress, Account
-from cryptotracker.staking import (
-    get_aggregated_staking,
-    get_last_validators,
-)
-
-from cryptotracker.tokens import (
-    fetch_aggregated_assets,
-)
+from cryptotracker.form import AccountForm, UserAddressForm
+from cryptotracker.models import Account, Snapshot, UserAddress
+from cryptotracker.protocols.protocols import get_protocols_snapshots
+from cryptotracker.rewards import calculate_monthly_pool_rewards
+from cryptotracker.eth_staking import get_aggregated_staking, get_last_validators
 from cryptotracker.tasks import (
     create_snapshot,
     update_assets_database,
-    update_staking_assets,
     update_cryptocurrency_price,
     update_protocols,
+    update_staking_assets,
 )
+from cryptotracker.tokens import fetch_aggregated_assets
 from cryptotracker.utils import get_last_price
-
-from cryptotracker.protocols.protocols import get_protocols_snapshots
-
-
+from cryptotracker.constants import WALLET_TYPES
 # Create your views here.
 
 
@@ -55,16 +47,12 @@ def calculate_total_value(
         total_value += asset["amount_eur"]
     if total_eth_staking:
         total_value += total_eth_staking["balance_eur"]
-        print(total_value)
     if total_protocols:
         for protocol_pools in total_protocols["pool_data"].values():
             total_value += sum(data.balance_eur for data in protocol_pools)
-            print(total_value)
         if total_protocols["troves"]:
-            print(total_protocols["troves"])
             for trove in total_protocols["troves"]:
                 total_value += trove.balance
-        print(total_value)
     return total_value
 
 
@@ -86,19 +74,17 @@ def home(request: HttpRequest) -> HttpResponse:
 
 @login_required()
 def portfolio(request: HttpRequest) -> HttpResponse:
-    
     user = cast(User, request.user)
 
-    user_addresses = list(UserAddress.objects.filter(user=user))   
+    user_addresses = list(UserAddress.objects.filter(user=user))
     last_snapshot = Snapshot.objects.first()
     aggregated_assets = fetch_aggregated_assets(user_addresses)
     total_eth_staking = get_aggregated_staking(user_addresses)
     total_protocols = get_protocols_snapshots(user_addresses)
-    print(total_protocols, "total protocols")
     portfolio_value = calculate_total_value(user_addresses)
 
     if last_snapshot:
-        last_snapshot_date = last_snapshot.date 
+        last_snapshot_date = last_snapshot.date
     else:
         last_snapshot_date = None
     context = {
@@ -119,7 +105,7 @@ def portfolio(request: HttpRequest) -> HttpResponse:
 def staking(request: HttpRequest) -> HttpResponse:
     user = cast(User, request.user)
 
-    user_addresses = list(UserAddress.objects.filter(user=user))   
+    user_addresses = list(UserAddress.objects.filter(user=user))
     validators = get_last_validators(user_addresses)
 
     context = {
@@ -131,12 +117,12 @@ def staking(request: HttpRequest) -> HttpResponse:
 @login_required()
 def accounts(request: HttpRequest) -> HttpResponse:
     accounts_detail = []
-    user = cast(User, request.user)  
-    accounts = list(Account.objects.filter(user=user)) 
+    user = cast(User, request.user)
+    accounts = list(Account.objects.filter(user=user))
 
     if accounts:
         for account in accounts:
-            user_addresses = list(UserAddress.objects.filter(account=account))  
+            user_addresses = list(UserAddress.objects.filter(account=account))
             account_value = calculate_total_value(user_addresses)
             account_detail = {
                 "account": account,
@@ -166,16 +152,12 @@ def accounts(request: HttpRequest) -> HttpResponse:
 
 @login_required
 def delete_object(
-    request: HttpRequest, 
-    model: Any,  
-    id: int, 
-    redirect_url: str, 
-    object_type: str
+    request: HttpRequest, model: Any, id: int, redirect_url: str, object_type: str
 ) -> HttpResponse:
-    obj: Any = get_object_or_404(model, pk=id) 
+    obj: Any = get_object_or_404(model, pk=id)
 
     if request.method == "POST":
-        obj.delete() 
+        obj.delete()
         return redirect(redirect_url)
 
     # Render the confirmation page
@@ -233,7 +215,7 @@ def address_detail(request: HttpRequest, public_address: str) -> HttpResponse:
     portfolio_value = calculate_total_value(user_addresses)
 
     last_snapshot = Snapshot.objects.first()
-    last_snapshot_date = last_snapshot.date if last_snapshot else None  
+    last_snapshot_date = last_snapshot.date if last_snapshot else None
     context = {
         "user": request.user,
         "assets": aggregated_assets,
@@ -253,16 +235,15 @@ def rewards(request: HttpRequest) -> HttpResponse:
     """
     Show rewards for the portafolio, include staking rewards and protocol rewards.
     """
-    user = cast(User, request.user)  
+    user = cast(User, request.user)
 
-    user_addresses = list(UserAddress.objects.filter(user=user))   
+    user_addresses = list(UserAddress.objects.filter(user=user))
 
     # Get ETH Staking rewards
-    eth_rewards = Decimal(0) 
+    eth_rewards = Decimal(0)
     validators = get_last_validators(user_addresses)
 
     if validators:
-
         for validator in validators:
             current_price = get_last_price("ethereum", snapshot=validator.snapshot.date)
             eth_rewards += validator.rewards * current_price
@@ -272,33 +253,32 @@ def rewards(request: HttpRequest) -> HttpResponse:
         "ETH": f"{eth_rewards:,.2f}",
     }
 
-    total_rewards = eth_rewards
     context = {
         "rewards": rewards,
-        "total_rewards": f"{total_rewards:,.2f}",
+        "total_rewards": f"{eth_rewards:,.2f}",
+        "pool_rewards": calculate_monthly_pool_rewards(),
     }
     return render(request, "rewards.html", context)
 
 
 @login_required()
 def edit_object(
-    request: HttpRequest, 
-    model: Any, 
-    id: int, 
-    form: Type,  
-    redirect_url: str, 
-    object_type: str
+    request: HttpRequest,
+    model: Any,
+    id: int,
+    form: Type,
+    redirect_url: str,
+    object_type: str,
 ) -> HttpResponse:
-    
-    obj= get_object_or_404(model, pk=id)  
+    obj = get_object_or_404(model, pk=id)
 
     if request.method == "POST":
-        form_instance = form(request.POST, instance=obj) 
+        form_instance = form(request.POST, instance=obj)
         if form_instance.is_valid():
-            form_instance.save() 
+            form_instance.save()
             return redirect(redirect_url)
     else:
-        form_instance = form(instance=obj) 
+        form_instance = form(instance=obj)
 
     context = {
         "form2": form_instance,
@@ -326,7 +306,6 @@ def refresh(request: HttpRequest) -> HttpResponse:
         update_cryptocurrency_price.s(snapshot_id),
     )
     task_group_result = task_group.apply_async()
-    print(f"Task group ID: {task_group_result.id}")
 
     request.session["task_group_id"] = task_group_result.id
 
@@ -341,7 +320,8 @@ def waiting_page(request: HttpRequest) -> HttpResponse:
     Render the waiting page and check task status.
     """
     task_group_id = request.session.get("task_group_id")
-    print(f"Task group ID: {task_group_id}")
+    logging.info(f"Task group ID: {task_group_id}")
+
     if not task_group_id:
         return redirect(reverse("portfolio"))
 
@@ -357,11 +337,11 @@ def check_task_status(request: HttpRequest) -> JsonResponse:
     if not task_group_id:
         return JsonResponse({"status": "complete"})
 
-    print(f"Checking task group ID: {task_group_id}")
+    logging.info(f"Checking task group ID: {task_group_id}")
 
     task_group_result = GroupResult.restore(task_group_id)
 
-    print(task_group_result)
+    logging.info(task_group_result)
 
     if task_group_result and task_group_result.ready():
         # All tasks are complete
@@ -375,24 +355,21 @@ def statistics(request: HttpRequest) -> HttpResponse:
     """
     Show some statistics of the portfolio.
     """
-    user = cast(User, request.user) 
-    user_addresses = list(UserAddress.objects.filter(user=user)) 
-
-    # Statistic balance per type of wallet
-    wallet_types = ["HOT", "COLD", "SMART"]
+    user = cast(User, request.user)
+    user_addresses = list(UserAddress.objects.filter(user=user))
 
     wallet_values = {
         wallet: calculate_total_value(
-            list(filter(lambda addr: addr.wallet_type.name == wallet, user_addresses)) 
+            list(filter(lambda addr: addr.wallet_type.name == wallet, user_addresses))
         )
-        for wallet in wallet_types
+        for wallet in WALLET_TYPES.values()
     }
 
     # Amount (EUR) per account
     accounts_detail = []
-    accounts = list(Account.objects.filter(user=user))  
+    accounts = list(Account.objects.filter(user=user))
     for account in accounts:
-        account_addresses = list(UserAddress.objects.filter(account=account))  
+        account_addresses = list(UserAddress.objects.filter(account=account))
         account_value = calculate_total_value(account_addresses)
         accounts_detail.append(
             {
@@ -402,9 +379,9 @@ def statistics(request: HttpRequest) -> HttpResponse:
         )
 
     context = {
-        "hot_wallets_value": wallet_values["HOT"],
-        "cold_wallets_value": wallet_values["COLD"],
-        "smart_wallets_value": wallet_values["SMART"],
+        "hot_wallets_value": wallet_values[WALLET_TYPES["HOT"]],
+        "cold_wallets_value": wallet_values[WALLET_TYPES["COLD"]],
+        "smart_wallets_value": wallet_values[WALLET_TYPES["SMART"]],
         "accounts_detail": accounts_detail,
     }
     return render(request, "statistics.html", context)

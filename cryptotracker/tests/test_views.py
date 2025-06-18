@@ -1,12 +1,12 @@
+from django.contrib.auth.models import User
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
-from django.contrib.auth.models import User
+
 from cryptotracker.models import Account, UserAddress, WalletType
-from django.core.management import call_command
 
 
 class CryptoTrackerViewTests(TestCase):
-
     @classmethod
     def setUpTestData(cls):
         call_command("initialize_db")
@@ -66,7 +66,9 @@ class CryptoTrackerViewTests(TestCase):
         self.assertTrue(UserAddress.objects.filter(name="New UserAddress").exists())
 
     def test_delete_address_view(self):
-        response = self.client.post(reverse("delete_address", args=[self.user_address.id]))
+        response = self.client.post(
+            reverse("delete_address", args=[self.user_address.id])
+        )
         self.assertEqual(
             response.status_code, 302
         )  # Redirect after successful deletion
