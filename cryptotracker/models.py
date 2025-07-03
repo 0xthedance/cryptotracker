@@ -125,7 +125,7 @@ class PoolType(models.Model):
 class Pool(models.Model):
     type = models.ForeignKey("PoolType", on_delete=models.CASCADE)
     protocol_network = models.ForeignKey("ProtocolNetwork", on_delete=models.CASCADE)
-    contract_address = models.CharField(max_length=42)
+    contract_address = models.CharField(max_length=42, null=True, blank=True)
     description = models.CharField(max_length=42, blank=True, null=True)
 
     def __str__(self):

@@ -1,5 +1,5 @@
 import logging
-from cryptotracker.constants import NETWORKS, POOL_TYPES, PROTOCOLS
+from cryptotracker.constants import NETWORKS, POOL_TYPES, PROTOCOLS_DATA
 from cryptotracker.models import Cryptocurrency, Pool, Snapshot, UserAddress
 from cryptotracker.protocols.protocols import save_pool_snapshot
 from cryptotracker.protocols.subgraph import send_graphql_query
@@ -13,8 +13,8 @@ def update_uniswap_v3_positions(user_address: UserAddress, snapshot: Snapshot) -
 
     UNISWAP_LENDING_POOL = Pool.objects.get(
         type__name=POOL_TYPES["AMM"],
-        protocol_network__protocol__name=PROTOCOLS["UNISWAP V3"],
-        protocol_network__network__name=NETWORKS["ETHEREUM"],
+        protocol_network__protocol__name=PROTOCOLS_DATA["UNI_V3"]["name"],
+        protocol_network__network__name=NETWORKS["ETHEREUM"]["name"],
     )
 
     query = f"""

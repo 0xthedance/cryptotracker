@@ -4,7 +4,7 @@ from ape import Contract, networks
 
 from cryptotracker.models import Pool, ProtocolNetwork, Snapshot, UserAddress
 from cryptotracker.protocols.protocols import save_pool_snapshot
-from cryptotracker.constants import POOL_TYPES, PROTOCOLS
+from cryptotracker.constants import POOL_TYPES, PROTOCOLS_DATA
 
 
 def update_aave_lending_pools(user_address: UserAddress, snapshot: Snapshot) -> None:
@@ -15,7 +15,9 @@ def update_aave_lending_pools(user_address: UserAddress, snapshot: Snapshot) -> 
 
     """
     logging.info("Searching AAVE pools")
-    protocols = ProtocolNetwork.objects.filter(protocol__name=PROTOCOLS["AAVE V3"])
+    protocols = ProtocolNetwork.objects.filter(
+        protocol__name=PROTOCOLS_DATA["AAVE_V3"]["name"]
+    )
     pools = Pool.objects.filter(
         protocol_network__in=protocols,
         type__name=POOL_TYPES["LENDING"],

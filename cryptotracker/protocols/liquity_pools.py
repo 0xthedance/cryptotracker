@@ -10,21 +10,28 @@ from cryptotracker.models import (
     Trove,
     TroveSnapshot,
 )
-from cryptotracker.constants import NETWORKS, POOL_TYPES, PROTOCOLS
+from cryptotracker.constants import (
+    NETWORKS,
+    POOL_TYPES,
+    TOKENS,
+    PROTOCOLS_DATA,
+    ETHEREUM_RPC,
+)
 from cryptotracker.protocols.protocols import save_pool_snapshot
 from cryptotracker.protocols.subgraph import send_graphql_query
 from cryptotracker.utils import get_last_price
-from cryptotracker.constants import ETHEREUM_RCP
+
+LQTY_V2_SUBGRAPH_ID = "6bg574MHrEZXopJDYTu7S7TAvJKEMsV111gpKLM7ZCA7"
 
 
 def get_proxy_staking_contract(user_address: UserAddress) -> str:
     LQTY_V2_STAKING = Pool.objects.get(
         type__name=POOL_TYPES["STAKING"],
-        protocol_network__protocol__name=PROTOCOLS["LIQUITY V2"],
-        protocol_network__network__name=NETWORKS["ETHEREUM"],
+        protocol_network__protocol__name=PROTOCOLS_DATA["LQTY_V2"]["name"],
+        protocol_network__network__name=NETWORKS["ETHEREUM"]["name"],
     )
 
-    with networks.parse_network_choice(ETHEREUM_RCP):
+    with networks.parse_network_choice(ETHEREUM_RPC):
         lqty_govern_contract = Contract(LQTY_V2_STAKING.contract_address)
         return lqty_govern_contract.deriveUserProxyAddress(user_address.public_address)
 
@@ -42,11 +49,11 @@ def get_lqty_stakes(
     """
     LQTY_V1_STAKING = Pool.objects.get(
         type__name=POOL_TYPES["STAKING"],
-        protocol_network__protocol__name=PROTOCOLS["LIQUITY V1"],
-        protocol_network__network__name=NETWORKS["ETHEREUM"],
+        protocol_network__protocol__name=PROTOCOLS_DATA["LQTY_V1"]["name"],
+        protocol_network__network__name=NETWORKS["ETHEREUM"]["name"],
     )
 
-    with networks.parse_network_choice(ETHEREUM_RCP):
+    with networks.parse_network_choice(ETHEREUM_RPC):
         contract = Contract(LQTY_V1_STAKING.contract_address)
         lqty_stakes = contract.stakes(address)
         if not lqty_stakes:
@@ -90,8 +97,8 @@ def update_lqty_v1_staking(user_address: UserAddress, snapshot: Snapshot) -> Non
     logging.info("Updating LQTY V1 staking")
     LQTY_V1_STAKING = Pool.objects.get(
         type__name=POOL_TYPES["STAKING"],
-        protocol_network__protocol__name=PROTOCOLS["LIQUITY V1"],
-        protocol_network__network__name=NETWORKS["ETHEREUM"],
+        protocol_network__protocol__name=PROTOCOLS_DATA["LQTY_V1"]["name"],
+        protocol_network__network__name=NETWORKS["ETHEREUM"]["name"],
     )
     get_lqty_stakes(
         user_address.public_address, LQTY_V1_STAKING, snapshot, user_address
@@ -108,8 +115,8 @@ def update_lqty_v2_staking(user_address: UserAddress, snapshot: Snapshot) -> Non
 
     LQTY_V2_STAKING = Pool.objects.get(
         type__name=POOL_TYPES["STAKING"],
-        protocol_network__protocol__name=PROTOCOLS["LIQUITY V2"],
-        protocol_network__network__name=NETWORKS["ETHEREUM"],
+        protocol_network__protocol__name=PROTOCOLS_DATA["LQTY_V2"]["name"],
+        protocol_network__network__name=NETWORKS["ETHEREUM"]["name"],
     )
 
     proxy_contract = get_proxy_staking_contract(user_address)
@@ -127,11 +134,11 @@ def update_lqty_stability_pool(user_address: UserAddress, snapshot: Snapshot) ->
 
     LQTY_V1_STABILITY_POOL = Pool.objects.get(
         type__name=POOL_TYPES["STABILITY_POOL"],
-        protocol_network__protocol__name=PROTOCOLS["LIQUITY V1"],
-        protocol_network__network__name=NETWORKS["ETHEREUM"],
+        protocol_network__protocol__name=PROTOCOLS_DATA["LQTY_V1"]["name"],
+        protocol_network__network__name=NETWORKS["ETHEREUM"]["name"],
     )
 
-    with networks.parse_network_choice(ETHEREUM_RCP):
+    with networks.parse_network_choice(ETHEREUM_RPC):
         contract = Contract(LQTY_V1_STABILITY_POOL.contract_address)
         deposits = contract.deposits(user_address.public_address)
         if not deposits.initialValue:
@@ -178,11 +185,11 @@ def update_lqty_stability_pool_v2(
 
     LQTY_V2_STABILITY_POOLS = Pool.objects.filter(
         type__name=POOL_TYPES["STABILITY_POOL"],
-        protocol_network__protocol__name=PROTOCOLS["LIQUITY V2"],
-        protocol_network__network__name=NETWORKS["ETHEREUM"],
+        protocol_network__protocol__name=PROTOCOLS_DATA["LQTY_V2"]["name"],
+        protocol_network__network__name=NETWORKS["ETHEREUM"]["name"],
     )
 
-    with networks.parse_network_choice(ETHEREUM_RCP):
+    with networks.parse_network_choice(ETHEREUM_RPC):
         for pool in LQTY_V2_STABILITY_POOLS:
             contract = Contract(pool.contract_address)
             deposits = contract.deposits(user_address.public_address)
@@ -223,16 +230,13 @@ def update_lqty_stability_pool_v2(
             )
 
 
-LQTY_V2_SUBGRAPH_ID = "6bg574MHrEZXopJDYTu7S7TAvJKEMsV111gpKLM7ZCA7"
-
-
 def get_troves(user_address: UserAddress, snapshot: Snapshot) -> None:
     """Query all the troves for a given user_address using The Graph API"""
 
     pool = Pool.objects.get(
         type__name=POOL_TYPES["BORROWING"],
-        protocol_network__protocol__name=PROTOCOLS["LIQUITY V2"],
-        protocol_network__network__name=NETWORKS["ETHEREUM"],
+        protocol_network__protocol__name=PROTOCOLS_DATA["LQTY_V2"]["name"],
+        protocol_network__network__name=NETWORKS["ETHEREUM"]["name"],
     )
     query = f"""
     {{
@@ -281,7 +285,7 @@ def get_troves(user_address: UserAddress, snapshot: Snapshot) -> None:
 
         collateral_eur = collateral * get_last_price(token.name, snapshot.date)
 
-        debt_eur = debt * get_last_price("liquity-bold", snapshot.date)
+        debt_eur = debt * get_last_price(TOKENS["BOLD"]["name"], snapshot.date)
         balance = collateral_eur - debt_eur
 
         TroveSnapshot.objects.create(

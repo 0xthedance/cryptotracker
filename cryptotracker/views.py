@@ -16,7 +16,6 @@ from web3 import Web3
 from cryptotracker.form import AccountForm, UserAddressForm
 from cryptotracker.models import Account, Snapshot, UserAddress
 from cryptotracker.protocols.protocols import get_protocols_snapshots
-from cryptotracker.rewards import calculate_monthly_pool_rewards
 from cryptotracker.eth_staking import get_aggregated_staking, get_last_validators
 from cryptotracker.tasks import (
     create_snapshot,
@@ -28,6 +27,7 @@ from cryptotracker.tasks import (
 from cryptotracker.tokens import fetch_aggregated_assets
 from cryptotracker.utils import get_last_price
 from cryptotracker.constants import WALLET_TYPES
+
 # Create your views here.
 
 
