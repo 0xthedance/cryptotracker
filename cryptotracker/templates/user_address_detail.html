@@ -1,0 +1,22 @@
+{% extends "holdings.html" %}
+{% block content %}
+  
+<div class="container">
+    <h1 class="title mt-6">UserAddress Detail</h1>
+    <p><a href = "https://etherscan.io/user_address/{{user_address.public_address}}">{{ user_address.public_address }}</a></p>
+
+</div>
+
+  {{block.super}}
+  <div class="container">
+
+  <div class="buttons">
+    <a class="button is-primary mt-6" href="{% url "user_addresses" %}"> <strong>Back to addresses list</strong>
+    </a>
+
+  </div>
+
+    </div>
+</section>
+</div>
+{% endblock %}

@@ -32,6 +32,8 @@ dataclassy==0.11.1
 decorator==5.2.1
 Django==5.2
 django-celery-beat==2.8.0
+django-stubs==5.2.1
+django-stubs-ext==5.2.1
 django-timezone-field==7.1
 eip712==0.2.11
 eth-account==0.13.6
@@ -68,6 +70,7 @@ mdurl==0.1.2
 morphys==1.0
 msgspec==0.19.0
 multidict==6.3.2
+mypy==1.16.1
 mypy_extensions==1.1.0
 numpy==1.26.4
 packaging==23.2
@@ -107,6 +110,7 @@ regex==2024.11.6
 requests==2.32.3
 rich==13.9.4
 rlp==4.1.0
+ruff==0.12.0
 safe-pysha3==1.0.4
 semantic-version==2.10.0
 six==1.17.0
@@ -120,6 +124,7 @@ toolz==1.0.0
 tqdm==4.67.1
 traitlets==5.14.3
 trie==3.1.0
+types-PyYAML==6.0.12.20250516
 types-requests==2.32.0.20250328
 typing-inspection==0.4.0
 typing_extensions==4.13.1

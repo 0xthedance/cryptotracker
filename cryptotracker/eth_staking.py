@@ -1,9 +1,9 @@
-from decimal import Decimal
 from datetime import datetime
-from typing import Optional, List, Dict, Union
+from decimal import Decimal
+from typing import Dict, List, Optional, Union
 
+from cryptotracker.models import Snapshot, UserAddress, Validator, ValidatorSnapshot
 from cryptotracker.utils import APIquery, get_last_price
-from cryptotracker.models import Validator, ValidatorSnapshot, Snapshot, Address
 
 BEACONCHAN_API = "https://beaconcha.in/api/v1/validator"
 
@@ -37,36 +37,40 @@ class ValidatorDetails:
         )
 
 
-def get_last_validators(addresses: List[Address]) -> Optional[List[ValidatorSnapshot]]:
+def get_last_validators(
+    user_addresses: List[UserAddress],
+) -> Optional[List[ValidatorSnapshot]]:
     """
-    Get the last staking assets for a list of addresses.
+    Get the last staking assets for a list of user_addresses.
     Args:
-        addresses (list): A list of Address objects.
+        user_addresses (list): A list of UserAddress objects.
     Returns:
         list: A list of ValidatorSnapshot objects or None if no validators exist.
     """
     last_snapshot = Snapshot.objects.first()
     last_validators = ValidatorSnapshot.objects.filter(
-        validator__address__in=addresses, snapshot=last_snapshot
+        validator__user_address__in=user_addresses, snapshot=last_snapshot
     )
     if not last_validators:
         return None
     return list(last_validators)
 
 
-def get_aggregated_staking(addresses: List[Address]) -> Optional[Dict[str, Union[int, Decimal]] ]:
+def get_aggregated_staking(
+    user_addresses: List[UserAddress],
+) -> Optional[Dict[str, Union[int, Decimal]]]:
     """
-    Get the aggregated staking information for a list of addresses.
+    Get the aggregated staking information for a list of user_addresses.
     Args:
-        addresses (list): A list of Address objects.
+        user_addresses (list): A list of UserAddress objects.
     Returns:
         dict: A dictionary containing the aggregated staking information or None if no validators exist.
     """
-    total_eth_staking: Dict[str, Union[int, Decimal]]  = {}
+    total_eth_staking: Dict[str, Union[int, Decimal]] = {}
     num_validators = 0
     balance = Decimal(0)
     rewards = Decimal(0)
-    last_validators = get_last_validators(addresses)
+    last_validators = get_last_validators(user_addresses)
     if last_validators is None:
         return None
     num_validators = len(last_validators)
@@ -84,14 +88,14 @@ def get_aggregated_staking(addresses: List[Address]) -> Optional[Dict[str, Union
     return total_eth_staking
 
 
-def fetch_staking_assets(address: Address, snapshot: Snapshot) -> None:
+def fetch_staking_assets(user_address: UserAddress, snapshot: Snapshot) -> None:
     """
     Fetch the staking assets of a user from the Ethereum blockchain and store them in the database.
     Args:
-        address (Address): The Address object.
+        user_address (UserAddress): The UserAddress object.
         snapshot (Snapshot): The Snapshot object.
     """
-    validators = get_validators_from_withdrawal(address.public_address)
+    validators = get_validators_from_withdrawal(user_address.public_address)
 
     if not validators:
         return
@@ -102,7 +106,7 @@ def fetch_staking_assets(address: Address, snapshot: Snapshot) -> None:
     for validator in validator_details:
         # Create or get the Validator object
         validator_obj, _ = Validator.objects.get_or_create(
-            address=address,
+            user_address=user_address,
             validator_index=validator.index,
             defaults={
                 "public_key": validator.public_key,
@@ -120,18 +124,18 @@ def fetch_staking_assets(address: Address, snapshot: Snapshot) -> None:
         )
 
 
-def get_validators_from_withdrawal(address: str) -> List[int]:
+def get_validators_from_withdrawal(user_address: str) -> List[int]:
     """
     Get the validator indexes from the withdrawal credentials using Beaconcha API.
     Args:
-        address (str): The withdrawal credentials address.
+        user_address (str): The withdrawal credentials user_address.
     Returns:
         list: A list of validator indexes.
     """
     validators: List[int] = []
     params = {"limit": 10, "offset": 0}
 
-    url = f"{BEACONCHAN_API}/withdrawalCredentials/{address}"
+    url = f"{BEACONCHAN_API}/withdrawalCredentials/{user_address}"
     # Fetch validator data from the API
     data = APIquery(url, params=params)
     if data is None:

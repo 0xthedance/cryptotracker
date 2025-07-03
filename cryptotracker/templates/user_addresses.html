@@ -11,42 +11,42 @@
                 <tr>
                     <th>Name</th>
                     <th>Account</th>
-                    <th>Public Address</th>
+                    <th>Public UserAddress</th>
                     <th>Wallet Type</th>
                     <th>Balance</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                {% for address in addresses_detail %}
+                {% for user_address in addresses_detail %}
                 <tr>
                     <td>
-                        <a href="{% url 'address_detail' address.address.public_address %}">
-                            {{ address.address.name }}
+                        <a href="{% url 'address_detail' user_address.user_address.public_address %}">
+                            {{ user_address.user_address.name }}
                         </a>
                     </td>
-                    <td>{{ address.address.account }}</td>
+                    <td>{{ user_address.user_address.account }}</td>
                     <td>
-                        {{ address.address.public_address }}
-                        <button class="button is-small is-light" onclick="copyToClipboard('{{ address.address.public_address }}')">
+                        {{ user_address.user_address.public_address }}
+                        <button class="button is-small is-light" onclick="copyToClipboard('{{ user_address.user_address.public_address }}')">
                             <span class="icon">
                                 <i class="fas fa-copy"></i>
                             </span>
                         </button>
-                        <a class="button is-small is-light" href="https://etherscan.io/address/{{ address.address.public_address }}" target="_blank">
+                        <a class="button is-small is-light" href="https://etherscan.io/address/{{ user_address.user_address.public_address }}" target="_blank">
                             <span class="icon">
                                 <i class="fas fa-link"></i>
                             </span>
                         </a>
                     </td>
-                    <td>{{ address.address.wallet_type }}</td>
-                    <td>{{ address.balance }} EUR</td>
+                    <td>{{ user_address.user_address.wallet_type }}</td>
+                    <td>{{ user_address.balance }} EUR</td>
                     <td>
-                        <a class="button is-small is-info" href="{% url 'edit_address' address.address.id %}">
+                        <a class="button is-small is-info" href="{% url 'edit_address' user_address.user_address.id %}">
                             <span class="icon"><i class="fas fa-edit"></i></span>
                             <span>Edit</span>
                         </a>
-                        <a class="button is-small is-danger" href="{% url 'delete_address' address.address.id %}">
+                        <a class="button is-small is-danger" href="{% url 'delete_address' user_address.user_address.id %}">
                             <span class="icon"><i class="fas fa-trash-alt"></i></span>
                             <span>Delete</span>
                         </a>
@@ -58,16 +58,16 @@
     </div>
     {% else %}
     <div class="notification is-warning mt-4">
-        <p>This portfolio has no addresses.</p>
+        <p>This portfolio has no user_addresses.</p>
     </div>
     {% endif %}
 
     <div class="content mt-6">
-        <h3 class="title is-4">Add an Address to Your Portfolio</h3>
+        <h3 class="title is-4">Add an UserAddress to Your Portfolio</h3>
         <form method="post">
             {% csrf_token %}
             <div class="field">
-                <label class="label">Public Address</label>
+                <label class="label">Public UserAddress</label>
                 <div class="control">
                     {{ form1.public_address }}
                 </div>
@@ -102,7 +102,7 @@
 <script>
     function copyToClipboard(text) {
         navigator.clipboard.writeText(text).then(() => {
-            alert('Public address copied to clipboard!');
+            alert('Public user_address copied to clipboard!');
         }).catch(err => {
             console.error('Failed to copy text: ', err);
         });

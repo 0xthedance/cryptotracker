@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import ModelForm
 
-from cryptotracker.models import Account, Address
+from cryptotracker.models import Account, UserAddress
 
 
 class AccountForm(ModelForm):
@@ -10,7 +10,7 @@ class AccountForm(ModelForm):
         fields = ["name"]
 
     def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop("user", None)  # Pass the user when initializing the form
+        self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
 
     def clean_name(self):
@@ -28,38 +28,37 @@ class AccountForm(ModelForm):
         return name
 
 
-class AddressForm(ModelForm):
+class UserAddressForm(ModelForm):
     class Meta:
-        model = Address
+        model = UserAddress
         fields = ["public_address", "account", "wallet_type", "name"]
 
     def clean_public_address(self):
-
         cleaned_data = super().clean()
         public_address = cleaned_data["public_address"]
 
         # Length check
         if len(public_address) != 42:
-            raise forms.ValidationError("Invalid public address length")
+            raise forms.ValidationError("Invalid public user_address length")
 
         # Prefix check
         if not public_address.startswith("0x"):
-            raise forms.ValidationError("Invalid public address prefix")
+            raise forms.ValidationError("Invalid public user_address prefix")
 
         # Hexadecimal check
         try:
             int(public_address, 16)
         except ValueError:
-            raise forms.ValidationError("Invalid public address hexadecimal")
+            raise forms.ValidationError("Invalid public user_address hexadecimal")
 
         # Existence check
-        if Address.objects.filter(public_address=public_address).exists():
-            raise forms.ValidationError("Public address already exists")
+        if UserAddress.objects.filter(public_address=public_address).exists():
+            raise forms.ValidationError("Public user_address already exists")
 
         return public_address
 
 
-class EditAddressForm(ModelForm):
+class EditUserAddressForm(ModelForm):
     class Meta:
-        model = Address
+        model = UserAddress
         fields = ["account", "wallet_type", "name"]

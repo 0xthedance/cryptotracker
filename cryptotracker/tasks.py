@@ -1,14 +1,17 @@
-from celery import shared_task
+import logging
+
 from datetime import datetime
+
+from celery import shared_task
 from celery.exceptions import TimeoutError
 
-from cryptotracker.tokens import fetch_assets
-from cryptotracker.models import Address, Snapshot, Cryptocurrency, Price
-from cryptotracker.staking import fetch_staking_assets
-from cryptotracker.utils import fetch_cryptocurrency_price
-from cryptotracker.protocols.liquity import update_lqty_pools
+from cryptotracker.models import Cryptocurrency, Price, Snapshot, UserAddress
 from cryptotracker.protocols.aave import update_aave_lending_pools
+from cryptotracker.protocols.liquity_pools import update_lqty_pools
 from cryptotracker.protocols.uniswap import update_uniswap_v3_positions
+from cryptotracker.eth_staking import fetch_staking_assets
+from cryptotracker.tokens import fetch_assets
+from cryptotracker.utils import fetch_cryptocurrency_price
 
 
 @shared_task
@@ -31,16 +34,16 @@ def update_cryptocurrency_price(snapshot_id: int) -> str:
     Returns:
         str: A success message.
     """
-    print(snapshot_id)
+    logging.info("Updating cryptocurrency prices...")
     snapshot = Snapshot.objects.get(id=snapshot_id)
     cryptocurrencies = Cryptocurrency.objects.all()
     crypto_ids = [crypto.name for crypto in cryptocurrencies]
 
     prices = fetch_cryptocurrency_price(crypto_ids)
     if prices is None:
-        print("Failed to fetch cryptocurrency prices.")
+        logging.error("Failed to fetch cryptocurrency prices.")
         return "Failed to update cryptocurrency prices."
-    
+
     for crypto in crypto_ids:
         crypto_price = Price(
             cryptocurrency=Cryptocurrency.objects.get(name=crypto),
@@ -48,7 +51,7 @@ def update_cryptocurrency_price(snapshot_id: int) -> str:
             snapshot=snapshot,
         )
         crypto_price.save()
-        print(f"Price of {crypto} updated to {prices[crypto]['eur']} EUR")
+        logging.info(f"Price of {crypto} updated to {prices[crypto]['eur']} EUR")
     return "Cryptocurrency prices updated successfully!"
 
 
@@ -61,19 +64,21 @@ def update_assets_database(snapshot_id: int) -> str:
     Returns:
         str: A success message.
     """
-    print("Updating assets database...")
+    logging.info("Updating assets database...")
     snapshot = Snapshot.objects.get(id=snapshot_id)
 
-    addresses = Address.objects.all()
-    for address in addresses:
+    user_addresses = UserAddress.objects.all()
+    for user_address in user_addresses:
         try:
-            print(f"Fetching assets for address: {address.public_address}")
-            fetch_assets(address, snapshot)
+            logging.info(
+                f"Fetching assets for user_address: {user_address.public_address}"
+            )
+            fetch_assets(user_address, snapshot)
         except TimeoutError:
-            print("TimeoutError: Retrying...")
+            logging.error("TimeoutError: Retrying...")
             continue
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logging.error(f"An error occurred: {e}")
             continue
     return "Assets updated successfully!"
 
@@ -89,15 +94,18 @@ def update_staking_assets(snapshot_id: int) -> str:
     """
     snapshot = Snapshot.objects.get(id=snapshot_id)
 
-    addresses = Address.objects.all()
-    for address in addresses:
+    user_addresses = UserAddress.objects.all()
+    for user_address in user_addresses:
         try:
-            fetch_staking_assets(address, snapshot)
+            logging.info(
+                f"Fetching staking assets for user_address: {user_address.public_address}"
+            )
+            fetch_staking_assets(user_address, snapshot)
         except TimeoutError:
-            print("TimeoutError: Retrying...")
+            logging.error("TimeoutError: Retrying...")
             continue
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logging.error(f"An error occurred: {e}")
             continue
     return "Staking assets updated successfully!"
 
@@ -113,17 +121,17 @@ def update_protocols(snapshot_id: int) -> str:
     """
     snapshot = Snapshot.objects.get(id=snapshot_id)
 
-    addresses = Address.objects.all()
-    for address in addresses:
+    user_addresses = UserAddress.objects.all()
+    for user_address in user_addresses:
         try:
-            print(f"Fetching protocols for address: {address}")
-            update_lqty_pools(address, snapshot)
-            update_aave_lending_pools(address, snapshot)
-            update_uniswap_v3_positions(address, snapshot)
+            logging.info(f"Fetching protocols for user_address: {user_address}")
+            update_lqty_pools(user_address, snapshot)
+            update_aave_lending_pools(user_address, snapshot)
+            update_uniswap_v3_positions(user_address, snapshot)
         except TimeoutError:
-            print("TimeoutError: Retrying...")
+            logging.error("TimeoutError: Retrying...")
             continue
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logging.error(f"An error occurred: {e}")
             continue
     return "Protocols updated successfully!"

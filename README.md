@@ -104,7 +104,7 @@ Crypto Tracker is a Django-based web application designed to help users monitor 
 ## Usage
 
 1. **Sign Up**: Create an account to start tracking your portfolio.
-2. **Add Addresses**: Add your cryptocurrency wallet addresses.
+2. **Add UserAddresses**: Add your cryptocurrency wallet user_addresses.
 3. **View Portfolio**: Monitor your assets, staking balances, and protocol participation.
 4. **Refresh Data**: Use the "Refresh" button to fetch the latest data.
 5. **Explore Statistics**: View detailed statistics for wallets and accounts.

@@ -1,12 +1,6 @@
 from django.contrib import admin
-from cryptotracker.models import (
-    Cryptocurrency,
-    Price,
-    Account,
-    Network,
-    Pool,
-    Protocol,
-)
+
+from cryptotracker.models import Account, Cryptocurrency, Network, Pool, Price, Protocol
 
 
 # Register your models here.

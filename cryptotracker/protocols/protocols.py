@@ -1,138 +1,164 @@
+import logging
+
+from collections import defaultdict
 from decimal import Decimal
+from typing import Optional, Dict
+from django.db.models import QuerySet
 
 from cryptotracker.models import (
-    Snapshot,
-    Pool,
-    ProtocolNetwork,
-    PoolBalance,
-    PoolRewards,
-    Address,
-    TroveSnapshot,
     Cryptocurrency,
+    Pool,
+    PoolBalanceSnapshot,
+    PoolPosition,
+    PoolRewardsSnapshot,
+    Snapshot,
+    TroveSnapshot,
+    UserAddress,
 )
-
 from cryptotracker.utils import get_last_price
 
 
-
-def save_pool_balance(address: Address, pool: Pool, token: Cryptocurrency, quantity: Decimal, snapshot: Snapshot):
+def save_pool_snapshot(
+    pool: Pool,
+    address: UserAddress,
+    token_symbol: str,
+    quantity: Decimal,
+    snapshot: Snapshot,
+    is_reward: bool = False,
+    pool_id: Optional[int] = None,
+) -> None:
     """
-    Saves the pool balance to the database.
+    Saves the pool balance or rewards to the database.
     Args:
-        pool (Pool): The pool object.
+        pool_position (PoolPosition): Pool Position
+        pool_id (int, optional): The ID of the pool (default: None).
         token (Cryptocurrency): The cryptocurrency object.
-        quantity (float): The quantity of the token.
+        quantity (Decimal): The quantity of the token.
+        snapshot (Snapshot): The snapshot object.
+        is_reward (bool): Whether the data is a reward (default: False).
     """
     try:
-        pool_balance = PoolBalance(
-            address=address,
+        token = Cryptocurrency.objects.get(symbol=token_symbol)
+
+        pool_position, created = PoolPosition.objects.get_or_create(
+            user_address=address,
             pool=pool,
+            defaults={"pool_id": pool_id} if pool_id else {},
+        )
+
+        snapshot_model = PoolRewardsSnapshot if is_reward else PoolBalanceSnapshot
+
+        pool_snapshot = snapshot_model(
+            pool_position=pool_position,
             token=token,
             quantity=quantity,
             snapshot=snapshot,
         )
-        print(pool_balance)
 
-        pool_balance.save()
+        pool_snapshot.save()
     except Exception as e:
-        print(f"Error saving pool {pool.name} balance: {e}")
+        logging.warning(
+            f"Error saving pool {pool} {'reward' if is_reward else 'balance'}: {e}"
+        )
 
 
-def save_pool_rewards(address: Address, pool: Pool, token: Cryptocurrency, quantity: Decimal, snapshot: Snapshot):
-    """
-    Saves the pool rewards to the database.
-    Args:
-        pool (Pool): The pool object.
-        token (Cryptocurrency): The cryptocurrency object.
-        quantity (float): The quantity of the token.
-    """
-    pool_rewards = PoolRewards(
-        address=address,
-        pool=pool,
-        token=token,
-        quantity=quantity,
-        snapshot=snapshot,
-    )
-    print(pool_rewards)
-    pool_rewards.save()
+class PoolData:
+    def __init__(self, pool_position: PoolPosition, snapshot: Snapshot):
+        """
+        Initialize PoolData with a pool position and snapshot.
+        """
+        self.pool_position = pool_position
+        self.snapshot = snapshot
+        self.protocol = self._protocol()
+        self.balances = self._get_balance()
+        self.rewards = self._get_rewards()
+        self.balance_eur = self._calculate_balance_eur()
+
+    def _protocol(self) -> str:
+        return self.pool_position.pool.protocol_network.protocol.name
+
+    def _get_balance(self) -> Optional[QuerySet]:
+        """
+        Fetch the balance snapshot for the pool position and snapshot.
+        """
+        try:
+            return PoolBalanceSnapshot.objects.filter(
+                pool_position=self.pool_position, snapshot=self.snapshot
+            )
+        except PoolBalanceSnapshot.DoesNotExist:
+            logging.warning(
+                ValueError(
+                    f"No balance found for pool {self.pool_position} in snapshot {self.snapshot}"
+                )
+            )
+            return None
+
+    def _get_rewards(self) -> Optional[QuerySet]:
+        """
+        Fetch the rewards snapshots for the pool position and snapshot.
+        """
+        try:
+            return PoolRewardsSnapshot.objects.filter(
+                pool_position=self.pool_position, snapshot=self.snapshot
+            )
+        except PoolBalanceSnapshot.DoesNotExist:
+            logging.warning(
+                ValueError(
+                    f"No balance found for pool {self.pool_position} in snapshot {self.snapshot}"
+                )
+            )
+            return None
+
+    def _calculate_balance_eur(self) -> Optional[Decimal]:
+        """
+        Calculate the balance in EUR based on the current price.
+        """
+        if not self.balances:
+            return None
+        balance_eu = 0
+        for balance in self.balances:
+            current_price = get_last_price(balance.token.name, self.snapshot.date)
+            balance_eu += balance.quantity * current_price
+
+        return Decimal(balance_eu)
 
 
-def get_protocols_snapshots(addresses: list) -> dict:
+def get_protocols_snapshots(user_addresses: list) -> dict:
     """
     Fetches the last snapshot of the protocols in the database.
-    This function iterates through all the protocols and their pools, fetching the data from the database
-    and returning it as a dictionary.
-        total_liquity_v1 = get_protocols_snapshots(addresses, protocol_name="Liquity V1")
-    total_liquity_v2 = get_protocols_snapshots(addresses, protocol_name="Liquity V2")
-    total_aave = get_protocols_snapshots(addresses, protocol_name="Aave V3")
+
     """
-    PROTOCOLS = ["Liquity V1","Liquity V2","Aave V3", "Uniswap V3"]
+    last_snapshot = Snapshot.objects.first()
 
-    last_protocol_data = {}
+    user_pools = PoolPosition.objects.filter(user_address__in=user_addresses)
 
-    for protocol_name in PROTOCOLS:
-        last_pool_data: dict = {}
-        protocols = ProtocolNetwork.objects.filter(protocol__name=protocol_name)
-        last_snapshot = Snapshot.objects.first()
-        if not last_snapshot:
-            return {}
-        for protocol in protocols:
-            pools_balances = PoolBalance.objects.filter(
-                address__in=addresses, pool__protocol_network=protocol
-            )
-            pools_rewards = PoolRewards.objects.filter(
-                address__in=addresses, pool__protocol_network=protocol
-            )
-            if not pools_balances:
-                continue
+    if not user_pools or not last_snapshot:
+        logging.warning("No user pools or last snapshot found.")
+        return {}
 
-            pools = Pool.objects.filter(protocol_network=protocol)
-            for pool in pools:
-                last_pool_data[pool.name] = {
-                    "balances": {},
-                    "rewards": {},
-                    "troves": [],
-                }
+    pool_data = []
 
-                if pool.name == "borrow":
-                    troves = TroveSnapshot.objects.filter(
-                        trove__address__in=addresses,
-                        trove__pool=pool,
-                        snapshot=last_snapshot,
-                    )
-                    if not troves:
-                        continue
-                    last_pool_data[pool.name]["troves"].append(troves)
-                    continue
+    for pool_position in user_pools:
+        data = PoolData(pool_position, last_snapshot)
+        if data.balances:
+            pool_data.append(data)
 
-                last_pool_balances = pools_balances.filter(
-                    pool=pool, snapshot=last_snapshot
-                )
-                if not last_pool_balances:
-                    continue
+    troves = TroveSnapshot.objects.filter(
+        trove__user_address__in=user_addresses,
+        snapshot=last_snapshot,
+    )
 
-                for balance in last_pool_balances:
-                    current_price = get_last_price(
-                        balance.token.name, last_snapshot.date)
-                    last_pool_data[pool.name]["balances"][balance.token.symbol] = {
-                        "network": balance.pool.protocol_network.network.name,
-                        "quantity": balance.quantity,
-                        "balance_eur": balance.quantity * current_price,
-                        "image": balance.token.image,
-                    }
-                last_pool_rewards = pools_rewards.filter(pool=pool, snapshot=last_snapshot)
-                if not last_pool_rewards:
-                    continue
+    grouped_data = defaultdict(list)
 
-                for reward in last_pool_rewards:
-                    last_pool_data[pool.name]["rewards"][reward.token.symbol] = {
-                        "quantity": reward.quantity,
-                    }
+    for pool in pool_data:
+        protocol_name = pool.protocol
+        grouped_data[protocol_name].append(pool)
 
-            if not last_pool_data:
-                return None
+    grouped_data_dict: Dict[str, list[PoolData]] = dict(grouped_data)
 
-        last_protocol_data[protocol_name] = last_pool_data
-    print(last_protocol_data)
-    return last_protocol_data
+    logging.info(f"Grouped data: {grouped_data}")
 
+    return {
+        "pool_data": grouped_data_dict,
+        "troves": troves,
+    }

@@ -1,5 +1,6 @@
 #virtual emvironment
 .venv_crypto/
+myenv/
 # Django stuff:
 *.log
 local_settings.py
@@ -9,3 +10,4 @@ db.sqlite3-journal
 __pycache__/
 #environmental variables 
 .env
+.addresses.py

@@ -1,41 +1,15 @@
 from django.core.management.base import BaseCommand
+
 from cryptotracker.models import Network
 
-
-NETWORKS = [
-    {
-        "name": "Ethereum",
-        "url_rpc": "ethereum:mainnet:alchemy",
-        "image": "cryptotracker/logos/ethereum.png",
-    },
-    {
-        "name": "Arbitrum",
-        "url_rpc": "arbitrum:mainnet:alchemy",
-        "image": "cryptotracker/logos/arbitrum.png",
-    },
-    {
-        "name": "Avalanche",
-        "url_rpc": "avalanche:mainnet:alchemy",
-        "image": "cryptotracker/logos/avalanche.png",
-    },
-    {
-        "name": "Gnosis Chain",
-        "url_rpc": "gnosis:mainnet:alchemy",
-        "image": "cryptotracker/logos/gnosis.png",
-    },
-    {
-        "name": "Base",
-        "url_rpc": "base:mainnet:alchemy",
-        "image": "cryptotracker/logos/base.png",
-    },
-]
+from cryptotracker.constants import NETWORKS
 
 
 class Command(BaseCommand):
     help = "Initialize networks"
 
     def handle(self, *args, **options):
-        for network in NETWORKS:
+        for network in NETWORKS.values():
             network_obj, created = Network.objects.get_or_create(
                 name=network["name"],
                 defaults={
