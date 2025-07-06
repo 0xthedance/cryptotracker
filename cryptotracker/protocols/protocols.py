@@ -134,7 +134,7 @@ def get_protocols_snapshots(user_addresses: list) -> dict:
 
     if not user_pools or not last_snapshot:
         logging.warning("No user pools or last snapshot found.")
-        return {}
+        return {"pool_data": {}, "troves": []}
 
     pool_data = []
 

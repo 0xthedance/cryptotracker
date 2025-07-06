@@ -11,12 +11,12 @@ from cryptotracker.views import (
     home,
     portfolio,
     refresh,
-    rewards,
     sign_up,
     staking,
     statistics,
     user_addresses,
     waiting_page,
+    rewards,
 )
 
 urlpatterns = [
@@ -69,6 +69,6 @@ urlpatterns = [
     ),
     path("waiting_page/", waiting_page, name="waiting_page"),
     path("check_task_status/", check_task_status, name="check_task_status"),
-    path("rewards/", rewards, name="rewards"),
     path("statistics/", statistics, name="statistics"),
+    path("rewards/", rewards, name="rewards"),
 ]

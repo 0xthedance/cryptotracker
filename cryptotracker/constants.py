@@ -1,3 +1,5 @@
+from typing import Dict, Any
+
 ETHEREUM_RPC = "ethereum:mainnet:alchemy"
 
 WALLET_TYPES = {
@@ -42,7 +44,7 @@ NETWORKS = {
     },
 }
 
-PROTOCOLS_DATA = {
+PROTOCOLS_DATA: Dict[str, Any] = {
     "LQTY_V1": {
         "name": "Liquity v1",
         "image": "cryptotracker/logos/liquity_v1.png",
@@ -144,7 +146,7 @@ PROTOCOLS_DATA = {
     },
 }
 
-TOKENS = {
+TOKENS: Dict[str, Any] = {
     "ETH": {
         "name": "ethereum",
         "symbol": "ETH",

@@ -25,8 +25,8 @@ from cryptotracker.tasks import (
     update_staking_assets,
 )
 from cryptotracker.tokens import fetch_aggregated_assets
-from cryptotracker.utils import get_last_price
 from cryptotracker.constants import WALLET_TYPES
+from cryptotracker.utils import get_last_price
 
 # Create your views here.
 
@@ -256,7 +256,6 @@ def rewards(request: HttpRequest) -> HttpResponse:
     context = {
         "rewards": rewards,
         "total_rewards": f"{eth_rewards:,.2f}",
-        "pool_rewards": calculate_monthly_pool_rewards(),
     }
     return render(request, "rewards.html", context)
 
