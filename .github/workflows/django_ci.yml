@@ -15,7 +15,7 @@ jobs:
       API_KEY_THE_GRAPH: ${{ secrets.API_KEY_THE_GRAPH }}
       ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
       WEB3_ALCHEMY_PROJECT_ID: ${{ secrets.WEB3_ALCHEMY_PROJECT_ID }}
-      
+
     services:
       redis:
         image: redis:6.2
@@ -47,11 +47,11 @@ jobs:
       
       - name: Start Celery worker in background
         run: |
-          celery -A myproject worker --loglevel=info --detach
+          celery -A dcp worker --loglevel=info --detach
 
       - name: Start Celery beat in background
         run: |
-          celery -A myproject beat --loglevel=info --detach
+          celery -A dcp beat --loglevel=info --detach
 
       - name: Run tests
         run: |
