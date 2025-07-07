@@ -1,3 +1,5 @@
+import logging
+
 from decimal import Decimal
 
 from ape import Contract, networks
@@ -10,6 +12,8 @@ from cryptotracker.models import (
     UserAddress,
 )
 from cryptotracker.utils import get_last_price
+
+from cryptotracker.constants import TOKENS
 
 
 def fetch_assets(user_address: UserAddress, snapshot: Snapshot) -> None:
@@ -25,9 +29,17 @@ def fetch_assets(user_address: UserAddress, snapshot: Snapshot) -> None:
             public_address = user_address.public_address
             # Fetch tokens balance
             for token in CryptocurrencyNetwork.objects.filter(network=network):
-                if token.cryptocurrency.name == "ethereum":
+                if token.cryptocurrency.name == TOKENS["ETH"]["name"]:
+                    logging.info(
+                        f"Fetching balance for Ethereum on network {network.name}"
+                    )
                     token_asset = provider.get_balance(public_address)
                 else:
+                    if not token.token_address:
+                        logging.warning(
+                            f"Token {token.cryptocurrency.name} does not have a token address on network {network.name}"
+                        )
+                        continue
                     token_contract = Contract(token.token_address)
                     token_asset = token_contract.balanceOf(public_address)
 

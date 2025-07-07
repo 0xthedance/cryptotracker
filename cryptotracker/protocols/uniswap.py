@@ -53,6 +53,9 @@ def update_uniswap_v3_positions(user_address: UserAddress, snapshot: Snapshot) -
     for position in positions:
         for key in [0, 1]:
             token = Cryptocurrency.objects.get(symbol=position[f"token{key}"]["symbol"])
+            print(f"Processing position for token: {token.symbol}")
+            print(f"Position ID: {position['id']}")
+            print(UNISWAP_LENDING_POOL)
             if position[f"depositedToken{key}"] != "0":
                 save_pool_snapshot(
                     pool=UNISWAP_LENDING_POOL,

@@ -22,7 +22,7 @@ class Cryptocurrency(models.Model):
 class CryptocurrencyNetwork(models.Model):
     cryptocurrency = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)
     network = models.ForeignKey("Network", on_delete=models.CASCADE)
-    token_address = models.CharField(max_length=42)
+    token_address = models.CharField(max_length=42, blank=True, null=True)
 
     def __str__(self):
         return (

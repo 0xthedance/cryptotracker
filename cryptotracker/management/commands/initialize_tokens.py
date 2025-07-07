@@ -32,8 +32,6 @@ class Command(BaseCommand):
 
             # Iterate through the networks and token_addresses
             for network_name, token_address in token["token_address"].items():
-                if not token_address:  # Skip if the token_address is empty
-                    continue
 
                 # Get the network
                 network = Network.objects.get(name=network_name)

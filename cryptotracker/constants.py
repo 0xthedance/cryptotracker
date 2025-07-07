@@ -232,15 +232,15 @@ TOKENS: Dict[str, Any] = {
         },
     },
     "BOLD": {
-        "name": "liquity-bold",
+        "name": "liquity-bold-2",
         "symbol": "BOLD",
         "image": "cryptotracker/logos/bold.png",
         "token_address": {
             "Ethereum": "0x6440f144b7e50D6a8439336510312d2F54beB01D",
-            "Avalanche": "0x03569CC076654F82679C4BA2124D64774781B01D",
-            "Arbitrum": "0x03569CC076654F82679C4BA2124D64774781B01D",
+            "Avalanche": None,
+            "Arbitrum": None,
             "Gnosis Chain": None,
-            "Base": "0x03569CC076654F82679C4BA2124D64774781B01D",
+            "Base": None,
         },
     },
     "WETH": {
