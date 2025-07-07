@@ -59,7 +59,6 @@ class CryptoTrackerViewTests(TestCase):
                 "account": self.account.id,
             },
         )
-        print(response)
         self.assertEqual(
             response.status_code, 302
         )  # Redirect after successful addition

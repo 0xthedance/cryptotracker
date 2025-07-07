@@ -25,13 +25,13 @@ def save_pool_snapshot(
     quantity: Decimal,
     snapshot: Snapshot,
     is_reward: bool = False,
-    pool_id: Optional[int] = None,
+    pool_id: Optional[str] = None,
 ) -> None:
     """
     Saves the pool balance or rewards to the database.
     Args:
         pool_position (PoolPosition): Pool Position
-        pool_id (int, optional): The ID of the pool (default: None).
+        pool_id (str, optional): The ID of the pool (default: None).
         token (Cryptocurrency): The cryptocurrency object.
         quantity (Decimal): The quantity of the token.
         snapshot (Snapshot): The snapshot object.
@@ -43,8 +43,13 @@ def save_pool_snapshot(
         pool_position, created = PoolPosition.objects.get_or_create(
             user_address=address,
             pool=pool,
-            defaults={"pool_id": pool_id} if pool_id else {},
+            position_id=pool_id,
         )
+
+        if created:
+            logging.info(f"Created new pool position: {pool_position}")
+        else:
+            logging.info(f"Found existing pool position: {pool_position}")
 
         snapshot_model = PoolRewardsSnapshot if is_reward else PoolBalanceSnapshot
 

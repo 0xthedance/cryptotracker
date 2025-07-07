@@ -79,9 +79,9 @@ class SnapshotAssets(models.Model):
 
 class Validator(models.Model):
     user_address = models.ForeignKey("UserAddress", on_delete=models.CASCADE)
-    validator_index = models.IntegerField()
+    validator_index = models.IntegerField(unique=True)
     public_key = models.CharField(max_length=128)
-    activation_date = models.CharField()
+    activation_date = models.CharField(max_length=20)
 
     def __str__(self):
         return f"Validator {self.validator_index} - {self.user_address}"

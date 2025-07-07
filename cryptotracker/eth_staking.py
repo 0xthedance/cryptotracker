@@ -113,6 +113,7 @@ def fetch_staking_assets(user_address: UserAddress, snapshot: Snapshot) -> None:
                 "activation_date": validator.activation_date,
             },
         )
+        print(f"Processing validator: {validator.index}")
 
         # Save the validator snapshot
         ValidatorSnapshot.objects.create(

@@ -23,7 +23,6 @@ def update_uniswap_v3_positions(user_address: UserAddress, snapshot: Snapshot) -
             where: {{
                 owner: "{user_address.public_address}",
                 liquidity_gt: "0"}}
-
         ) {{
             id
             liquidity
@@ -32,8 +31,8 @@ def update_uniswap_v3_positions(user_address: UserAddress, snapshot: Snapshot) -
                 decimals
             }}
             token1 {{
-                decimals
                 symbol
+                decimals
             }}
         collectedFeesToken0
         collectedFeesToken1
@@ -49,13 +48,12 @@ def update_uniswap_v3_positions(user_address: UserAddress, snapshot: Snapshot) -
         return None
 
     positions = response["data"]["positions"]
+    logging.info(f"Found UNISWAP {positions} positions")
 
     for position in positions:
         for key in [0, 1]:
             token = Cryptocurrency.objects.get(symbol=position[f"token{key}"]["symbol"])
-            print(f"Processing position for token: {token.symbol}")
-            print(f"Position ID: {position['id']}")
-            print(UNISWAP_LENDING_POOL)
+            logging.info(f"Position: {position} Token: {token.symbol}")
             if position[f"depositedToken{key}"] != "0":
                 save_pool_snapshot(
                     pool=UNISWAP_LENDING_POOL,
@@ -63,7 +61,7 @@ def update_uniswap_v3_positions(user_address: UserAddress, snapshot: Snapshot) -
                     token_symbol=token.symbol,
                     quantity=position[f"depositedToken{key}"],
                     snapshot=snapshot,
-                    pool_id=position["id"],
+                    pool_id=str(position["id"]),
                 )
             if position[f"collectedFeesToken{key}"] != "0":
                 save_pool_snapshot(
@@ -73,5 +71,5 @@ def update_uniswap_v3_positions(user_address: UserAddress, snapshot: Snapshot) -
                     quantity=position[f"collectedFeesToken{key}"],
                     snapshot=snapshot,
                     is_reward=True,
-                    pool_id=position["id"],
+                    pool_id=str(position["id"]),
                 )
