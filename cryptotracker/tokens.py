@@ -13,8 +13,6 @@ from cryptotracker.models import (
 )
 from cryptotracker.utils import get_last_price
 
-from cryptotracker.constants import TOKENS
-
 
 def fetch_assets(user_address: UserAddress, snapshot: Snapshot) -> None:
     """
@@ -29,7 +27,7 @@ def fetch_assets(user_address: UserAddress, snapshot: Snapshot) -> None:
             public_address = user_address.public_address
             # Fetch tokens balance
             for token in CryptocurrencyNetwork.objects.filter(network=network):
-                if token.cryptocurrency.name == TOKENS["ETH"]["name"]:
+                if token.token_address == "NativeToken":
                     logging.info(
                         f"Fetching balance for Ethereum on network {network.name}"
                     )

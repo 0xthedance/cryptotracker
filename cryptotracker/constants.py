@@ -152,11 +152,25 @@ TOKENS: Dict[str, Any] = {
         "symbol": "ETH",
         "image": "cryptotracker/logos/ethereum.png",
         "token_address": {
-            "Ethereum": None,
-            "Avalanche": None,
-            "Arbitrum": None,
-            "Gnosis Chain": None,
-            "Base": None,
+            "Ethereum": "NativeToken",
+            "Arbitrum": "NativeToken",
+            "Base": "NativeToken",
+        },
+    },
+    "GNO": {
+        "name": "gnosis",
+        "symbol": "GNO",
+        "image": "cryptotracker/logos/gnosis.png",
+        "token_address": {
+            "Gnosis Chain": "NativeToken",
+        },
+    },
+    "AVAX": {
+        "name": "avalanche-2",
+        "symbol": "AVAX",
+        "image": "cryptotracker/logos/avalanche.png",
+        "token_address": {
+            "Avalanche": "NativeToken",
         },
     },
     "LQTY": {
@@ -250,7 +264,7 @@ TOKENS: Dict[str, Any] = {
         "token_address": {
             "Ethereum": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
             "Avalanche": None,
-            "Arbitrum": None,
+            "Arbitrum": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
             "Gnosis Chain": None,
             "Base": None,
         },
