@@ -34,7 +34,7 @@ Crypto Tracker is a Django-based web application designed to help users monitor 
    DJANGO_SECRET_KEY=your_secret_key
    WEB3_ALCHEMY_PROJECT_ID=your_alchemy_project_id
    ETHERSCAN_API_KEY=your_etherscan_api_key
-   API_KEY_THE_GRAPH=your_graph_api_key
+   THE_GRAPH_API_KEY=your_graph_api_key
    COINGECKO_API_KEY=your_coingecko_api_key
    ```
 
@@ -88,7 +88,7 @@ Crypto Tracker is a Django-based web application designed to help users monitor 
    ```
 
 2. **Additional Environment Variables for Production**:
-   Modify  `django_production_env` file with your preferences:
+   Modify  `.env` file with your preferences:
    ```
    REDIS_URL=redis://redis:6379/0
    DJANGO_ALLOWED_HOSTS=your_production_domain

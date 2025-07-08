@@ -4,7 +4,7 @@ import requests
 
 import logging
 
-API_KEY_THE_GRAPH = os.environ["API_KEY_THE_GRAPH"]
+THE_GRAPH_API_KEY = os.environ["THE_GRAPH_API_KEY"]
 
 
 def send_graphql_query(id: str, query: str, variables=None) -> dict:
@@ -15,7 +15,7 @@ def send_graphql_query(id: str, query: str, variables=None) -> dict:
 
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {API_KEY_THE_GRAPH}",
+        "Authorization": f"Bearer {THE_GRAPH_API_KEY}",
     }
     payload = {
         "query": query,

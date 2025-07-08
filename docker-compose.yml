@@ -10,7 +10,7 @@ services:
     depends_on:
       - redis
     env_file:
-      - ./django_production_env
+      - ./.env
     labels:
       com.centurylinklabs.watchtower.enable: "true"
 
@@ -22,7 +22,7 @@ services:
     depends_on:
       - redis
     env_file:
-      - ./django_production_env
+      - ./.env
     labels:
       com.centurylinklabs.watchtower.enable: "true"
 
@@ -34,7 +34,7 @@ services:
     depends_on:
       - redis
     env_file:
-      - ./django_production_env
+      - ./.env
     labels:
       com.centurylinklabs.watchtower.enable: "true"
 
