@@ -1,4 +1,5 @@
 from decimal import Decimal
+from datetime import datetime
 import logging
 from typing import Any, List, Type, cast
 
@@ -18,7 +19,6 @@ from cryptotracker.models import Account, Snapshot, UserAddress
 from cryptotracker.protocols.protocols import get_protocols_snapshots
 from cryptotracker.eth_staking import get_aggregated_staking, get_last_validators
 from cryptotracker.tasks import (
-    create_snapshot,
     update_assets_database,
     update_cryptocurrency_price,
     update_protocols,
@@ -296,7 +296,9 @@ def refresh(request: HttpRequest) -> HttpResponse:
     """
     Trigger the tasks asynchronously with a shared Snapshot.
     """
-    snapshot_id = create_snapshot()
+
+    snapshot = Snapshot.objects.create(date=datetime.now())
+    snapshot_id = snapshot.id
 
     task_group = group(
         update_protocols.s(snapshot_id),

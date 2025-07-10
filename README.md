@@ -24,18 +24,19 @@ Crypto Tracker is a Django-based web application designed to help users monitor 
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-repo/crypto_tracker.git
-   cd crypto_tracker
+   git clone git@github.com:0xthedance/cryptotracker.git
+   cd cryptotracker
    ```
 
 2. **Create a `.env` File**:
    Create a `.env` file in the project root and add the following:
    ```
-   DJANGO_SECRET_KEY=your_secret_key
-   WEB3_ALCHEMY_PROJECT_ID=your_alchemy_project_id
-   ETHERSCAN_API_KEY=your_etherscan_api_key
-   THE_GRAPH_API_KEY=your_graph_api_key
-   COINGECKO_API_KEY=your_coingecko_api_key
+   export DJANGO_SECRET_KEY=your_secret_key
+   export WEB3_ALCHEMY_PROJECT_ID=your_alchemy_project_id
+   export ETHERSCAN_API_KEY=your_etherscan_api_key
+   export THE_GRAPH_API_KEY=your_graph_api_key
+   export COINGECKO_API_KEY=your_coingecko_api_key
+
    ```
 
    - **WEB3_ALCHEMY_PROJECT_ID**: Required for blockchain interactions via Alchemy.
@@ -81,22 +82,22 @@ Crypto Tracker is a Django-based web application designed to help users monitor 
 
 ### Run in Production Using Docker Compose
 
-1. **Build and Run the Application**:
-   Use `docker-compose.yml` to build and run the application:
-   ```bash
-   docker-compose up
-   ```
-
-2. **Additional Environment Variables for Production**:
+1. **Additional Environment Variables for Production**:
    Modify  `.env` file with your preferences:
    ```
-   REDIS_URL=redis://redis:6379/0
-   DJANGO_ALLOWED_HOSTS=your_production_domain
-   DJANGO_DEBUG=False
+   export REDIS_URL=redis://redis:6379
+   export DJANGO_ALLOWED_HOSTS=your_production_domain
+   export DJANGO_DEBUG=False
    ```
    - **REDIS_URL**: Specifies the Redis connection string for Celery.
    - **DJANGO_ALLOWED_HOSTS**: Specifies the allowed hosts for the production environment.
    - **DJANGO_DEBUG**: Set to `False` for production.
+
+2. **Build and Run the Application**:
+   Use `docker-compose.yml` to build and run the application:
+   ```bash
+   docker-compose up
+   ```
 
 3. **Access the Application**:
    Open your browser and navigate to `http://$IP_HOST:8000`.

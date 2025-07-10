@@ -4,7 +4,7 @@ import requests
 
 import logging
 
-THE_GRAPH_API_KEY = os.environ["THE_GRAPH_API_KEY"]
+THE_GRAPH_API_KEY = os.environ.get("THE_GRAPH_API_KEY")
 
 
 def send_graphql_query(id: str, query: str, variables=None) -> dict:

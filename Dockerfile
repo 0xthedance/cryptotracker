@@ -18,11 +18,6 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ENV variables
-ENV API_KEY_THE_GRAPH=${API_KEY_THE_GRAPH}
-ENV ETHERSCAN_API_KEY=${ETHERSCAN_API_KEY}
-ENV WEB3_ALCHEMY_PROJECT_ID=${WEB3_ALCHEMY_PROJECT_ID}
-
 # Copy the application code into the container
 COPY . .
 

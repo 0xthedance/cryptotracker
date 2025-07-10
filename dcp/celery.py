@@ -8,7 +8,7 @@ app = Celery("dcp")
 app.config_from_object("django.conf:settings", namespace="CELERY")
 app.conf.beat_schedule = {
     "fetch-assets-every-24-hours": {
-        "task": "cryptotracker.tasks.update_asses_database",
+        "task": "cryptotracker.tasks.update_assets_database",
         "schedule": crontab(hour=0, minute=0),
     },
     "fetch-staking-every-24-hours": {
