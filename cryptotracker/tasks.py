@@ -2,7 +2,7 @@ import logging
 
 from datetime import datetime
 
-from celery import shared_task
+from celery import shared_task, group
 from celery.exceptions import TimeoutError
 
 from cryptotracker.models import Cryptocurrency, Price, Snapshot, UserAddress
@@ -12,6 +12,27 @@ from cryptotracker.protocols.uniswap import update_uniswap_v3_positions
 from cryptotracker.eth_staking import fetch_staking_assets
 from cryptotracker.tokens import fetch_assets
 from cryptotracker.utils import fetch_cryptocurrency_price
+
+
+@shared_task
+def run_daily_snapshot_update():
+    """
+    Coordinates the daily snapshot update process.
+    Creates a snapshot and then runs all update tasks in parallel.
+    """
+    # Create the snapshot first
+    snapshot_id = create_snapshot()
+
+    # Run tasks in parallel
+    task_group = group(
+        update_cryptocurrency_price.s(snapshot_id),
+        update_assets_database.s(snapshot_id),
+        update_staking_assets.s(snapshot_id),
+        update_protocols.s(snapshot_id),
+    )
+
+    result = task_group.apply_async()
+    return result
 
 
 @shared_task

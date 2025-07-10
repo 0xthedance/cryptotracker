@@ -1,9 +1,7 @@
 from decimal import Decimal
-from datetime import datetime
 import logging
 from typing import Any, List, Type, cast
 
-from celery import group
 from celery.result import GroupResult
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
@@ -18,12 +16,7 @@ from cryptotracker.form import AccountForm, UserAddressForm
 from cryptotracker.models import Account, Snapshot, UserAddress
 from cryptotracker.protocols.protocols import get_protocols_snapshots
 from cryptotracker.eth_staking import get_aggregated_staking, get_last_validators
-from cryptotracker.tasks import (
-    update_assets_database,
-    update_cryptocurrency_price,
-    update_protocols,
-    update_staking_assets,
-)
+from cryptotracker.tasks import run_daily_snapshot_update
 from cryptotracker.tokens import fetch_aggregated_assets
 from cryptotracker.constants import WALLET_TYPES
 from cryptotracker.utils import get_last_price
@@ -297,16 +290,7 @@ def refresh(request: HttpRequest) -> HttpResponse:
     Trigger the tasks asynchronously with a shared Snapshot.
     """
 
-    snapshot = Snapshot.objects.create(date=datetime.now())
-    snapshot_id = snapshot.id
-
-    task_group = group(
-        update_protocols.s(snapshot_id),
-        update_assets_database.s(snapshot_id),
-        update_staking_assets.s(snapshot_id),
-        update_cryptocurrency_price.s(snapshot_id),
-    )
-    task_group_result = task_group.apply_async()
+    task_group_result = run_daily_snapshot_update()
 
     request.session["task_group_id"] = task_group_result.id
 
