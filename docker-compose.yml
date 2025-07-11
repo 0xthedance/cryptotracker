@@ -16,7 +16,7 @@ services:
 
   celery:
     image: thedance/cryptotracker:latest
-    command: celery -A dcp worker 
+    command: celery -A dcp worker --loglevel=info
     volumes:
       - ./data:/usr/src/app/data
     depends_on:

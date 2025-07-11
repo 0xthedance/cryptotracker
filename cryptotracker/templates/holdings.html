@@ -107,6 +107,7 @@
                     <th>Balance</th>
                     <th>Balance (EUR)</th>
                     <th>Rewards</th>
+                    <th>Address</th>
                 </tr>
             </thead>
             <tbody>
@@ -128,7 +129,9 @@
                         + {{ reward.quantity|floatformat:2|intcomma }} {{ reward.token.symbol }}<br>
                         {% endfor %}
                     </td>
-
+                    <td>
+                        <a href="{% url 'address_detail' pool.pool_position.user_address.public_address %}">{{ pool.pool_position.user_address.name }}</a>
+                    </td>
                 </tr>
 
                 {% endfor %}
