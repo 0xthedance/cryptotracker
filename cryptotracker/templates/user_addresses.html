@@ -90,6 +90,15 @@
                     {{ form1.account }}
                 </div>
             </div>
+            <div>
+                {% if form1.errors %}
+                    <ul>
+                        {% for error in form1.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
             <div class="field mt-4">
                 <div class="control">
                     <button class="button is-link " type="submit">Save</button>

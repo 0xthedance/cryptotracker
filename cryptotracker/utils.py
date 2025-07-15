@@ -20,7 +20,7 @@ def APIquery(url: str, params: Dict) -> Optional[Dict]:
     try:
         response = requests.get(url, params=params)
     except requests.exceptions.RequestException as e:
-        logging.error(f"Request failed: {e}")
+        logging.error(f"{url} request failed: {e}")
         return None
 
     if response.status_code != 200:

@@ -33,27 +33,36 @@ class UserAddressForm(ModelForm):
         model = UserAddress
         fields = ["public_address", "account", "wallet_type", "name"]
 
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+
+        if self.user:
+            self.fields["account"].queryset = Account.objects.filter(user=self.user)
+
     def clean_public_address(self):
         cleaned_data = super().clean()
         public_address = cleaned_data["public_address"]
 
         # Length check
         if len(public_address) != 42:
-            raise forms.ValidationError("Invalid public user_address length")
+            raise forms.ValidationError("Invalid public address length")
 
         # Prefix check
         if not public_address.startswith("0x"):
-            raise forms.ValidationError("Invalid public user_address prefix")
+            raise forms.ValidationError("Invalid public address prefix")
 
         # Hexadecimal check
         try:
             int(public_address, 16)
         except ValueError:
-            raise forms.ValidationError("Invalid public user_address hexadecimal")
+            raise forms.ValidationError("Invalid public address hexadecimal")
 
         # Existence check
         if UserAddress.objects.filter(public_address=public_address).exists():
-            raise forms.ValidationError("Public user_address already exists")
+            raise forms.ValidationError(
+                "This public address is already registered by another user."
+            )
 
         return public_address
 

@@ -272,6 +272,10 @@ def get_troves(user_address: UserAddress, snapshot: Snapshot) -> None:
             }.get(trove["collateral"]["collIndex"], "rETH")
         )
 
+        logging.info(
+            f"Processing trove {trove['id']} for user {user_address.public_address}"
+        )
+
         trove_obj, _ = Trove.objects.get_or_create(
             trove_id=trove["id"],
             defaults={

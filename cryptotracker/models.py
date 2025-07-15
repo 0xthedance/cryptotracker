@@ -56,7 +56,7 @@ class WalletType(models.Model):
 
 class UserAddress(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    public_address = models.CharField(max_length=42, unique=True)
+    public_address = models.CharField(max_length=42)
     account = models.ForeignKey("Account", on_delete=models.CASCADE)
     wallet_type = models.ForeignKey(WalletType, on_delete=models.CASCADE)
     name = models.CharField(max_length=20, blank=True, null=True)
@@ -136,7 +136,7 @@ class PoolPosition(models.Model):
     user_address = models.ForeignKey("UserAddress", on_delete=models.CASCADE)
     position_id = models.CharField(max_length=20, blank=True, null=True)
 
-    def __st__(self):
+    def __str__(self):
         return f"{self.position_id}"
 
 

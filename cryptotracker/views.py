@@ -175,7 +175,7 @@ def user_addresses(request: HttpRequest) -> HttpResponse:
         addresses_detail.append(address_detail)
 
     if request.method == "POST":
-        form = UserAddressForm(request.POST)
+        form = UserAddressForm(request.POST, user=user)
         if form.is_valid():
             public_address = form.clean_public_address()
             if Web3.is_checksum_address(public_address) is False:
@@ -190,10 +190,13 @@ def user_addresses(request: HttpRequest) -> HttpResponse:
             )
             user_address.save()
             return redirect("user_addresses")
+        else:
+            logging.error(f"Form errors: {form.errors}")
+            return render(request, "user_addresses.html", {"form1": form})
 
     context = {
         "addresses_detail": addresses_detail,
-        "form1": UserAddressForm(),
+        "form1": UserAddressForm(user=user),
     }
     return render(request, "user_addresses.html", context)
 

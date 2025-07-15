@@ -140,7 +140,7 @@ def update_protocols(snapshot_id: int) -> str:
     Returns:
         str: A success message.
     """
-    logging.error("snapshot id: %s", snapshot_id)
+
     snapshot = Snapshot.objects.get(id=snapshot_id)
 
     user_addresses = UserAddress.objects.all()

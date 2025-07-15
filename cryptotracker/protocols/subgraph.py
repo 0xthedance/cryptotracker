@@ -24,8 +24,13 @@ def send_graphql_query(id: str, query: str, variables=None) -> dict:
         payload["variables"] = variables
 
     try:
+        logging.debug(f"Sending GraphQL query to {url} with payload: {payload}")
         response = requests.post(url, headers=headers, json=payload)
+        logging.debug(f"Received response: {response.json()}")
         response.raise_for_status()
+        if "errors" in response.json():
+            logging.error(f"GraphQL errors: {response.json()['errors']}")
+            return {}
         return response.json()
 
     except requests.exceptions.HTTPError as e:

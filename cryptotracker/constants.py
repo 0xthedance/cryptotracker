@@ -162,7 +162,9 @@ TOKENS: Dict[str, Any] = {
         "symbol": "GNO",
         "image": "cryptotracker/logos/gnosis.png",
         "token_address": {
-            "Gnosis Chain": "NativeToken",
+            "Gnosis Chain": "0x9c58bacc331c9aa871afd802db6379a98e80cedb",
+            "Ethereum": "0x6810e776880c02933d47db1b9fc05908e5386b96",
+            "Arbitrum": "0xa0b862f60edef4452f25b4160f177db44deb6cf1",
         },
     },
     "AVAX": {
