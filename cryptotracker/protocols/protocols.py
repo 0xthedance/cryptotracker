@@ -128,29 +128,32 @@ class PoolData:
         return Decimal(balance_eu)
 
 
-def get_protocols_snapshots(user_addresses: list) -> dict:
+def get_protocols_snapshots(
+    user_addresses: list, snapshot: Optional[Snapshot] = None
+) -> dict:
     """
     Fetches the last snapshot of the protocols in the database.
 
     """
-    last_snapshot = Snapshot.objects.first()
+    if snapshot is None:
+        snapshot = Snapshot.objects.first()
 
     user_pools = PoolPosition.objects.filter(user_address__in=user_addresses)
 
-    if not user_pools or not last_snapshot:
+    if not user_pools or not snapshot:
         logging.warning("No user pools or last snapshot found.")
         return {"pool_data": {}, "troves": []}
 
     pool_data = []
 
     for pool_position in user_pools:
-        data = PoolData(pool_position, last_snapshot)
+        data = PoolData(pool_position, snapshot)
         if data.balances:
             pool_data.append(data)
 
     troves = TroveSnapshot.objects.filter(
         trove__user_address__in=user_addresses,
-        snapshot=last_snapshot,
+        snapshot=snapshot,
     )
 
     grouped_data = defaultdict(list)

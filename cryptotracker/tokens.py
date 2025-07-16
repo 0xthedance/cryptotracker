@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 from decimal import Decimal
 
@@ -51,7 +52,9 @@ def fetch_assets(user_address: UserAddress, snapshot: Snapshot) -> None:
                     asset_snapshot.save()
 
 
-def fetch_aggregated_assets(user_addresses: list[UserAddress]) -> dict:
+def fetch_aggregated_assets(
+    user_addresses: list[UserAddress], snapshot: Optional[Snapshot] = None
+) -> dict:
     """
     Fetches the aggregated assets of a list of user_addresses.
     Args:
@@ -59,13 +62,14 @@ def fetch_aggregated_assets(user_addresses: list[UserAddress]) -> dict:
     Returns:
         dict: A dictionary containing the aggregated assets and their values.
     """
-    last_snapshot = Snapshot.objects.first()
-    if not last_snapshot:
-        return {}
+    if snapshot is None:
+        snapshot = Snapshot.objects.first()
+        if not snapshot:
+            return {}
 
     # Filter assets for the given user_addresses and snapshot date
     last_assets = SnapshotAssets.objects.filter(
-        user_address__in=user_addresses, snapshot=last_snapshot
+        user_address__in=user_addresses, snapshot=snapshot
     )
 
     if not last_assets.exists():
@@ -82,7 +86,7 @@ def fetch_aggregated_assets(user_addresses: list[UserAddress]) -> dict:
         key = f"{symbol}_{network.name}"
 
         # Fetch the current price
-        current_price = get_last_price(token.name, last_snapshot.date)
+        current_price = get_last_price(token.name, snapshot.date)
 
         # Update or initialize the aggregated data
         if key not in aggregated_assets:

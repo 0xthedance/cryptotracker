@@ -72,7 +72,8 @@
                     <th>Nº Validators</th>
                     <th>Balance</th>
                     <th>Balance (EUR)</th>
-                    <th>Rewards</th>
+                    <th>Rewards</th> 
+                    <th>Staking addresses</th> 
                 </tr>
             </thead>
             <tbody>
@@ -87,6 +88,9 @@
                     <td>{{ staking.balance|floatformat:2|intcomma }} ETH</td>
                     <td>{{ staking.balance_eur|floatformat:2|intcomma  }} €</td>
                     <td>+ {{ staking.rewards }}</td>
+                    <td>
+                        <a href="{% url 'staking' %}"> Staking details </a><br>
+                    </td>
                 </tr>
             </tbody>
         </table>

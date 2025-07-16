@@ -1,6 +1,8 @@
 from decimal import Decimal
 import logging
-from typing import Any, List, Type, cast
+from typing import Any, List, Type, cast, Optional
+from datetime import datetime
+
 
 from celery.result import GroupResult
 from django.contrib.auth import login, logout
@@ -12,7 +14,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from web3 import Web3
 
-from cryptotracker.form import AccountForm, UserAddressForm
+from cryptotracker.form import AccountForm, UserAddressForm, Dateform
 from cryptotracker.models import Account, Snapshot, UserAddress
 from cryptotracker.protocols.protocols import get_protocols_snapshots
 from cryptotracker.eth_staking import get_aggregated_staking, get_last_validators
@@ -26,14 +28,19 @@ from cryptotracker.utils import get_last_price
 
 def calculate_total_value(
     user_addresses: List[UserAddress],
+    snapshot: Optional[Snapshot] = None,
 ) -> Decimal:
     """
     Helper function to calculate the total value for a given set of user_addresses.
     """
-
-    aggregated_assets = fetch_aggregated_assets(user_addresses)
-    total_eth_staking = get_aggregated_staking(user_addresses)
-    total_protocols = get_protocols_snapshots(user_addresses)
+    if not snapshot:
+        snapshot = Snapshot.objects.first()
+        if not snapshot:
+            logging.warning("No snapshot available for calculating total value.")
+            return Decimal(0)
+    aggregated_assets = fetch_aggregated_assets(user_addresses, snapshot=snapshot)
+    total_eth_staking = get_aggregated_staking(user_addresses, snapshot=snapshot)
+    total_protocols = get_protocols_snapshots(user_addresses, snapshot=snapshot)
 
     total_value = Decimal(0)
     for asset in aggregated_assets.values():
@@ -66,21 +73,44 @@ def home(request: HttpRequest) -> HttpResponse:
 
 
 @login_required()
-def portfolio(request: HttpRequest) -> HttpResponse:
+def portfolio(request: HttpRequest, date_str: Optional[str] = None) -> HttpResponse:
+
     user = cast(User, request.user)
 
+    error_warning = None
+    date = None
     user_addresses = list(UserAddress.objects.filter(user=user))
+    snapshot = None
     last_snapshot = Snapshot.objects.first()
-    aggregated_assets = fetch_aggregated_assets(user_addresses)
-    total_eth_staking = get_aggregated_staking(user_addresses)
-    total_protocols = get_protocols_snapshots(user_addresses)
-    portfolio_value = calculate_total_value(user_addresses)
+    last_snapshot_date = last_snapshot.date if last_snapshot else None
 
-    if last_snapshot:
-        last_snapshot_date = last_snapshot.date
+    if date_str:
+        # If a date is provided, filter the snapshots by that date
+        date = datetime.strptime(date_str, "%Y-%m-%d")
+        last_snapshot_date = date
+        snapshot = Snapshot.objects.filter(date__date=date).first()
+        if not snapshot:
+            # If no snapshot exists for the given date, use the most recent one
+            error_warning = "No snapshot found for the given date. Using the most recent snapshot instead."
+            snapshot = None
+            last_snapshot = Snapshot.objects.first()
+            last_snapshot_date = last_snapshot.date if last_snapshot else None
+
+    if request.method == "POST":
+        form = Dateform(request.POST)
+        if form.is_valid():
+            date_str = form.clean_date()
+            return redirect("portfolio_with_date", date_str=date_str)
     else:
-        last_snapshot_date = None
+        form = Dateform(initial={"date": date})
+
+    aggregated_assets = fetch_aggregated_assets(user_addresses, snapshot=snapshot)
+    total_eth_staking = get_aggregated_staking(user_addresses, snapshot=snapshot)
+    total_protocols = get_protocols_snapshots(user_addresses, snapshot=snapshot)
+    portfolio_value = calculate_total_value(user_addresses, snapshot=snapshot)
+
     context = {
+        "form3": form,
         "user": request.user,
         "assets": aggregated_assets,
         "staking": total_eth_staking,
@@ -89,6 +119,7 @@ def portfolio(request: HttpRequest) -> HttpResponse:
         "user_addresses": user_addresses,
         "portfolio_value": f"{portfolio_value:,.2f}",
         "last_snapshot": last_snapshot_date,
+        "error_warning": error_warning,
     }
 
     return render(request, "portfolio.html", context)
@@ -99,7 +130,11 @@ def staking(request: HttpRequest) -> HttpResponse:
     user = cast(User, request.user)
 
     user_addresses = list(UserAddress.objects.filter(user=user))
-    validators = get_last_validators(user_addresses)
+    snapshot = Snapshot.objects.first()
+    if snapshot:
+        validators = get_last_validators(user_addresses, snapshot=snapshot)
+    else:
+        validators = []
 
     context = {
         "validators": validators,
@@ -168,6 +203,7 @@ def user_addresses(request: HttpRequest) -> HttpResponse:
     user_addresses = list(UserAddress.objects.filter(user=user))
     for user_address in user_addresses:
         address_value = calculate_total_value([user_address])
+
         address_detail = {
             "user_address": user_address,
             "balance": f"{address_value:,.2f}",
@@ -205,6 +241,7 @@ def user_addresses(request: HttpRequest) -> HttpResponse:
 def address_detail(request: HttpRequest, public_address: str) -> HttpResponse:
     user_address = UserAddress.objects.get(public_address=public_address)
     user_addresses = [user_address]
+
     aggregated_assets = fetch_aggregated_assets(user_addresses)
     total_eth_staking = get_aggregated_staking(user_addresses)
     total_protocols = get_protocols_snapshots(user_addresses)
@@ -235,14 +272,19 @@ def rewards(request: HttpRequest) -> HttpResponse:
 
     user_addresses = list(UserAddress.objects.filter(user=user))
 
+    snapshot = Snapshot.objects.first()
+
     # Get ETH Staking rewards
     eth_rewards = Decimal(0)
-    validators = get_last_validators(user_addresses)
+    if snapshot:
+        validators = get_last_validators(user_addresses, snapshot=snapshot)
 
-    if validators:
-        for validator in validators:
-            current_price = get_last_price("ethereum", snapshot=validator.snapshot.date)
-            eth_rewards += validator.rewards * current_price
+        if validators:
+            for validator in validators:
+                current_price = get_last_price(
+                    "ethereum", snapshot=validator.snapshot.date
+                )
+                eth_rewards += validator.rewards * current_price
 
     # Get protocol rewards
     rewards = {

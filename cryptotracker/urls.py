@@ -23,6 +23,7 @@ urlpatterns = [
     path("", home, name="home"),
     path("accounts/", accounts, name="accounts"),
     path("portfolio/", portfolio, name="portfolio"),
+    path("portfolio/<str:date_str>/", portfolio, name="portfolio_with_date"),
     path("user_addresses/", user_addresses, name="user_addresses"),
     path("user_address/<str:public_address>/", address_detail, name="address_detail"),
     path("user_addresses/", include("django.contrib.auth.urls")),

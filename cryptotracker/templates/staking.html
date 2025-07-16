@@ -14,6 +14,7 @@
               <th>Balance</th>
               <th>Status</th>
               <th>Rewards</th>
+              <th>Owner</th>
           </tr>
       </thead>
       <tbody>
@@ -25,6 +26,9 @@
               <td>{{ validator.balance }}</td>
               <td>{{ validator.status }}</td>
               <td>+ {{ validator.rewards }}</td>
+              <td>
+                {{ validator.user_address.name }}
+              </td>
           </tr>
         {% endfor %}
       </tbody>

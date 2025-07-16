@@ -1,6 +1,21 @@
 {% extends "holdings.html" %}
 {% block title %} Portfolio {% endblock %}
 {% block content %}
+    <div class="container">
+      <h3 class="title is-5">Select a Portfolio Date</h3>
+      <form method="post" id="form3">
+          {% csrf_token %}
+          {{ form3.as_p }}
+          
+          <button type="submit" style="display: none;">Submit</button>
+      </form>
+      {% if error_warning %}
+          <div class="notification is-danger">
+              {{ error_warning }}
+          </div>
+      {% endif %}
+    </div>
+
   
 
   {{block.super}}

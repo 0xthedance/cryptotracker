@@ -1,3 +1,5 @@
+import datetime
+
 from django import forms
 from django.forms import ModelForm
 
@@ -71,3 +73,23 @@ class EditUserAddressForm(ModelForm):
     class Meta:
         model = UserAddress
         fields = ["account", "wallet_type", "name"]
+
+
+class Dateform(forms.Form):
+    date = forms.DateField(
+        widget=forms.DateInput(
+            attrs={
+                "type": "date",
+                "class": "form-control",
+                "onchange": "this.form.submit()",
+            }
+        ),
+        input_formats=["%Y-%m-%d"],
+        label="Date",
+    )
+
+    def clean_date(self):
+        date = self.cleaned_data["date"]
+        if date > datetime.date.today():
+            raise forms.ValidationError("The date cannot be in the future.")
+        return date

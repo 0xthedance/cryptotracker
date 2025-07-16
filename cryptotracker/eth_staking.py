@@ -38,7 +38,7 @@ class ValidatorDetails:
 
 
 def get_last_validators(
-    user_addresses: List[UserAddress],
+    user_addresses: List[UserAddress], snapshot: Snapshot
 ) -> Optional[List[ValidatorSnapshot]]:
     """
     Get the last staking assets for a list of user_addresses.
@@ -47,9 +47,8 @@ def get_last_validators(
     Returns:
         list: A list of ValidatorSnapshot objects or None if no validators exist.
     """
-    last_snapshot = Snapshot.objects.first()
     last_validators = ValidatorSnapshot.objects.filter(
-        validator__user_address__in=user_addresses, snapshot=last_snapshot
+        validator__user_address__in=user_addresses, snapshot=snapshot
     )
     if not last_validators:
         return None
@@ -57,7 +56,7 @@ def get_last_validators(
 
 
 def get_aggregated_staking(
-    user_addresses: List[UserAddress],
+    user_addresses: List[UserAddress], snapshot: Optional[Snapshot] = None
 ) -> Optional[Dict[str, Union[int, Decimal]]]:
     """
     Get the aggregated staking information for a list of user_addresses.
@@ -66,11 +65,15 @@ def get_aggregated_staking(
     Returns:
         dict: A dictionary containing the aggregated staking information or None if no validators exist.
     """
+    if snapshot is None:
+        snapshot = Snapshot.objects.first()
+        if not snapshot:
+            return None
     total_eth_staking: Dict[str, Union[int, Decimal]] = {}
     num_validators = 0
     balance = Decimal(0)
     rewards = Decimal(0)
-    last_validators = get_last_validators(user_addresses)
+    last_validators = get_last_validators(user_addresses, snapshot)
     if last_validators is None:
         return None
     num_validators = len(last_validators)

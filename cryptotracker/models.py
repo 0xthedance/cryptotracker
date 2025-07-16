@@ -18,6 +18,9 @@ class Cryptocurrency(models.Model):
     symbol = models.CharField(max_length=10)
     image = models.CharField(max_length=200)
 
+    def __str__(self):
+        return f"{self.name} ({self.symbol})"
+
 
 class CryptocurrencyNetwork(models.Model):
     cryptocurrency = models.ForeignKey("Cryptocurrency", on_delete=models.CASCADE)
@@ -25,9 +28,7 @@ class CryptocurrencyNetwork(models.Model):
     token_address = models.CharField(max_length=42, blank=True, null=True)
 
     def __str__(self):
-        return (
-            f"{self.cryptocurrency.name} on {self.network.name} ({self.token_address})"
-        )
+        return f"{self.cryptocurrency.name} on {self.network.name} "
 
 
 class Price(models.Model):
@@ -74,7 +75,7 @@ class SnapshotAssets(models.Model):
     snapshot = models.ForeignKey("Snapshot", on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.cryptocurrency.name} - {self.quantity} - {self.snapshot}"
+        return f"{self.cryptocurrency.cryptocurrency.name} - {self.quantity} - {self.snapshot}"
 
 
 class Validator(models.Model):
