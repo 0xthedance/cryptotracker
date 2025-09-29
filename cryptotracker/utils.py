@@ -3,11 +3,23 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
 
+import backoff
 import requests
+
 
 from cryptotracker.models import Cryptocurrency, Price
 
+def log_backoff(details):
+    logging.warning(f"Backing off {details['wait']:0.1f} seconds after {details['tries']} tries.")
 
+
+@backoff.on_exception(
+      backoff.expo,
+      (requests.exceptions.RequestException, ValueError, KeyError),
+      max_tries=3,
+      max_time=180,
+      on_backoff=log_backoff
+  )
 def APIquery(url: str, params: Dict) -> Optional[Dict]:
     """
     Sends a GET request to the specified URL with the given parameters.
