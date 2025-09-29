@@ -16,10 +16,12 @@ from cryptotracker.constants import (
     TOKENS,
     PROTOCOLS_DATA,
     ETHEREUM_RPC,
+    ERROR_TYPES,
 )
 from cryptotracker.protocols.protocols import save_pool_snapshot
 from cryptotracker.protocols.subgraph import send_graphql_query
 from cryptotracker.utils import get_last_price
+from cryptotracker.error_traking import log_snapshot_error
 
 LQTY_V2_SUBGRAPH_ID = "6bg574MHrEZXopJDYTu7S7TAvJKEMsV111gpKLM7ZCA7"
 
@@ -232,6 +234,7 @@ def update_lqty_stability_pool_v2(
 
 def get_troves(user_address: UserAddress, snapshot: Snapshot) -> None:
     """Query all the troves for a given user_address using The Graph API"""
+    error = ERROR_TYPES["TROBE"]
 
     pool = Pool.objects.get(
         type__name=POOL_TYPES["BORROWING"],
@@ -261,6 +264,12 @@ def get_troves(user_address: UserAddress, snapshot: Snapshot) -> None:
     """
     logging.info("Fetching troves for user: %s", user_address.public_address)
     troves = send_graphql_query(LQTY_V2_SUBGRAPH_ID, query)
+    if troves == "error":
+        logging.error("Error fetching troves for user: %s", user_address.public_address)
+        log_snapshot_error(
+            snapshot, error, user_address, pool.protocol_network.protocol
+        )
+        return
     if not troves or not troves.get("data") or not troves["data"].get("troves"):
         return
 

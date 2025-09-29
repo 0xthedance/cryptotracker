@@ -12,6 +12,7 @@ asgiref==3.8.1
 asttokens==2.4.1
 async-timeout==5.0.1
 attrs==25.3.0
+backoff==2.2.1
 base58==1.0.3
 billiard==4.2.1
 bitarray==3.3.1
@@ -113,6 +114,7 @@ rlp==4.1.0
 ruff==0.12.0
 safe-pysha3==1.0.4
 semantic-version==2.10.0
+sentry-sdk==2.39.0
 six==1.17.0
 sortedcontainers==2.4.0
 SQLAlchemy==2.0.40

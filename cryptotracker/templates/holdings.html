@@ -180,6 +180,20 @@
 
     </div>
     {% endfor %}
+  
+    
+    <div class="container">
+        <h1 class="title my-6">Errors</h1>
+        {% if errors %}  
+            <ul>
+                {% for error in errors %}
+                    <li>{{ error.error_log.error_type.error_type }} in {{ error.error_log.user_address.public_address }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No errors found.</p>
+        {% endif %}
+    </div>
 </section>
 
 {% endblock content %}

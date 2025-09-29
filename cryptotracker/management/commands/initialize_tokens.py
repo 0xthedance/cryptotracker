@@ -32,7 +32,6 @@ class Command(BaseCommand):
 
             # Iterate through the networks and token_addresses
             for network_name, token_address in token["token_address"].items():
-
                 # Get the network
                 network = Network.objects.get(name=network_name)
 

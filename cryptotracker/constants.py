@@ -1,5 +1,14 @@
 from typing import Dict, Any
 
+ERROR_TYPES = {
+    "TOKEN": "Token Error",
+    "STAKING": "Staking Error",
+    "PROTOCOL": "Protocol Error",
+    "TROVE": "Trove Error",
+    "UNKNOWN": "Unknown Error",
+}
+
+
 ETHEREUM_RPC = "ethereum:mainnet:alchemy"
 
 WALLET_TYPES = {

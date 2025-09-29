@@ -190,3 +190,40 @@ class Snapshot(models.Model):
 
     def __str__(self):
         return f"{self.date}"
+
+
+class ErrorTypes(models.Model):
+    error_type = models.CharField(max_length=20)
+
+
+class ErrorLog(models.Model):
+    user_address = models.ForeignKey("UserAddress", on_delete=models.CASCADE)
+    error_type = models.ForeignKey("ErrorTypes", on_delete=models.CASCADE)
+
+
+class SnapshotError(models.Model):
+    """Track errors that occur during snapshot data collection"""
+
+    snapshot = models.ForeignKey(
+        "Snapshot", on_delete=models.CASCADE, related_name="errors"
+    )
+    error_log = models.ForeignKey(
+        "ErrorLog", on_delete=models.CASCADE, related_name="snapshot_errors"
+    )
+    cryptocurrency = models.ForeignKey(
+        "Cryptocurrency",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        help_text="Associated cryptocurrency if error is crypto-specific",
+    )
+    protocol = models.ForeignKey(
+        "Protocol",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        help_text="Associated protocol if error is protocol-specific",
+    )
+
+    def __str__(self):
+        return f"Error in Snapshot {self.snapshot.id} - {self.error_log.error_type}"

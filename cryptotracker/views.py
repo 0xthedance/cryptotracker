@@ -15,7 +15,7 @@ from django.urls import reverse
 from web3 import Web3
 
 from cryptotracker.form import AccountForm, UserAddressForm, Dateform
-from cryptotracker.models import Account, Snapshot, UserAddress
+from cryptotracker.models import Account, Snapshot, UserAddress, SnapshotError
 from cryptotracker.protocols.protocols import get_protocols_snapshots
 from cryptotracker.eth_staking import get_aggregated_staking, get_last_validators
 from cryptotracker.tasks import run_daily_snapshot_update
@@ -74,7 +74,6 @@ def home(request: HttpRequest) -> HttpResponse:
 
 @login_required()
 def portfolio(request: HttpRequest, date_str: Optional[str] = None) -> HttpResponse:
-
     user = cast(User, request.user)
 
     error_warning = None
@@ -108,6 +107,9 @@ def portfolio(request: HttpRequest, date_str: Optional[str] = None) -> HttpRespo
     total_eth_staking = get_aggregated_staking(user_addresses, snapshot=snapshot)
     total_protocols = get_protocols_snapshots(user_addresses, snapshot=snapshot)
     portfolio_value = calculate_total_value(user_addresses, snapshot=snapshot)
+    error_logs = (
+        SnapshotError.objects.filter(snapshot=last_snapshot) if last_snapshot else []
+    )
 
     context = {
         "form3": form,
@@ -120,6 +122,7 @@ def portfolio(request: HttpRequest, date_str: Optional[str] = None) -> HttpRespo
         "portfolio_value": f"{portfolio_value:,.2f}",
         "last_snapshot": last_snapshot_date,
         "error_warning": error_warning,
+        "errors": error_logs,
     }
 
     return render(request, "portfolio.html", context)
@@ -249,6 +252,13 @@ def address_detail(request: HttpRequest, public_address: str) -> HttpResponse:
 
     last_snapshot = Snapshot.objects.first()
     last_snapshot_date = last_snapshot.date if last_snapshot else None
+    errors = (
+        SnapshotError.objects.filter(
+            snapshot=last_snapshot, error_log__user_address=user_address
+        )
+        if last_snapshot
+        else []
+    )
     context = {
         "user": request.user,
         "assets": aggregated_assets,
@@ -259,6 +269,7 @@ def address_detail(request: HttpRequest, public_address: str) -> HttpResponse:
         "portfolio_value": f"{portfolio_value:,.2f}",
         "last_snapshot": last_snapshot_date,
         "user_address": user_address,
+        "errors": errors,
     }
     return render(request, "user_address_detail.html", context)
 
