@@ -242,7 +242,8 @@ def user_addresses(request: HttpRequest) -> HttpResponse:
 
 @login_required()
 def address_detail(request: HttpRequest, public_address: str) -> HttpResponse:
-    user_address = UserAddress.objects.get(public_address=public_address)
+    user = cast(User, request.user)
+    user_address = UserAddress.objects.get(user=user, public_address=public_address)
     user_addresses = [user_address]
 
     aggregated_assets = fetch_aggregated_assets(user_addresses)
