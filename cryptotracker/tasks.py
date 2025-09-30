@@ -15,8 +15,8 @@ from cryptotracker.tokens import fetch_assets
 from cryptotracker.utils import fetch_cryptocurrency_price
 
 
-@shared_task
-def run_daily_snapshot_update(user_id: Optional[int] = None) -> group:
+@shared_task(bind=True)
+def run_daily_snapshot_update(self, user_id: Optional[int] = None) -> group:
     """
     Coordinates the daily snapshot update process.
     Creates a snapshot and then runs all update tasks in parallel.
@@ -36,8 +36,8 @@ def run_daily_snapshot_update(user_id: Optional[int] = None) -> group:
     return result
 
 
-@shared_task
-def create_snapshot() -> int:
+@shared_task(bind=True)
+def create_snapshot(self) -> int:
     """
     Creates a new Snapshot entry and returns its ID.
     Returns:
@@ -47,8 +47,8 @@ def create_snapshot() -> int:
     return snapshot.id
 
 
-@shared_task
-def update_cryptocurrency_price(snapshot_id: int) -> str:
+@shared_task(bind=True)
+def update_cryptocurrency_price(self, snapshot_id: int) -> str:
     """
     Fetches the current price of each cryptocurrency and stores it in the database with the given Snapshot.
     Args:
@@ -77,8 +77,8 @@ def update_cryptocurrency_price(snapshot_id: int) -> str:
     return "Cryptocurrency prices updated successfully!"
 
 
-@shared_task
-def update_assets_database(snapshot_id: int, user_id: Optional[int]) -> str:
+@shared_task(bind=True)
+def update_assets_database(self, snapshot_id: int, user_id: Optional[int]) -> str:
     """
     Fetches the assets of a user and stores them in the database with the given Snapshot.
     Args:
@@ -111,8 +111,8 @@ def update_assets_database(snapshot_id: int, user_id: Optional[int]) -> str:
     return "Assets updated successfully!"
 
 
-@shared_task
-def update_staking_assets(snapshot_id: int, user_id: Optional[int]) -> str:
+@shared_task(bind=True)
+def update_staking_assets(self, snapshot_id: int, user_id: Optional[int]) -> str:
     """
     Fetches the staking assets of a user and stores them in the database with the given Snapshot.
     Args:
@@ -144,8 +144,8 @@ def update_staking_assets(snapshot_id: int, user_id: Optional[int]) -> str:
     return "Staking assets updated successfully!"
 
 
-@shared_task
-def update_protocols(snapshot_id: int, user_id: Optional[int]) -> str:
+@shared_task(bind=True)
+def update_protocols(self, snapshot_id: int, user_id: Optional[int]) -> str:
     """
     Fetches the protocols of a user and stores them in the database with the given Snapshot.
     Args:
