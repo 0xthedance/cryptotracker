@@ -1,6 +1,7 @@
 import logging
 
 from datetime import datetime
+from typing import Optional
 
 from celery import shared_task, group
 from celery.exceptions import TimeoutError
@@ -15,7 +16,7 @@ from cryptotracker.utils import fetch_cryptocurrency_price
 
 
 @shared_task
-def run_daily_snapshot_update():
+def run_daily_snapshot_update(user_id: Optional[int] = None) -> group:
     """
     Coordinates the daily snapshot update process.
     Creates a snapshot and then runs all update tasks in parallel.
@@ -26,9 +27,9 @@ def run_daily_snapshot_update():
     # Run tasks in parallel
     task_group = group(
         update_cryptocurrency_price.s(snapshot_id),
-        update_assets_database.s(snapshot_id),
-        update_staking_assets.s(snapshot_id),
-        update_protocols.s(snapshot_id),
+        update_assets_database.s(snapshot_id, user_id),
+        update_staking_assets.s(snapshot_id, user_id),
+        update_protocols.s(snapshot_id, user_id),
     )
 
     result = task_group.apply_async()
@@ -77,7 +78,7 @@ def update_cryptocurrency_price(snapshot_id: int) -> str:
 
 
 @shared_task
-def update_assets_database(snapshot_id: int) -> str:
+def update_assets_database(snapshot_id: int, user_id: Optional[int]) -> str:
     """
     Fetches the assets of a user and stores them in the database with the given Snapshot.
     Args:
@@ -88,7 +89,13 @@ def update_assets_database(snapshot_id: int) -> str:
     logging.info("Updating assets database...")
     snapshot = Snapshot.objects.get(id=snapshot_id)
 
-    user_addresses = UserAddress.objects.all()
+    if user_id is None:
+        logging.info("Automated daily snapshot update initiated.")
+        user_addresses = UserAddress.objects.all()
+    else:
+        logging.info(f"User initiated a daily snapshot update with user ID: {user_id}")
+        user_addresses = UserAddress.objects.filter(user_id=user_id)
+
     for user_address in user_addresses:
         try:
             logging.info(
@@ -105,7 +112,7 @@ def update_assets_database(snapshot_id: int) -> str:
 
 
 @shared_task
-def update_staking_assets(snapshot_id: int) -> str:
+def update_staking_assets(snapshot_id: int, user_id: Optional[int]) -> str:
     """
     Fetches the staking assets of a user and stores them in the database with the given Snapshot.
     Args:
@@ -115,7 +122,13 @@ def update_staking_assets(snapshot_id: int) -> str:
     """
     snapshot = Snapshot.objects.get(id=snapshot_id)
 
-    user_addresses = UserAddress.objects.all()
+    if user_id is None:
+        logging.info("Automated daily snapshot update initiated.")
+        user_addresses = UserAddress.objects.all()
+    else:
+        logging.info(f"User initiated a daily snapshot update with user ID: {user_id}")
+        user_addresses = UserAddress.objects.filter(user_id=user_id)
+
     for user_address in user_addresses:
         try:
             logging.info(
@@ -132,7 +145,7 @@ def update_staking_assets(snapshot_id: int) -> str:
 
 
 @shared_task
-def update_protocols(snapshot_id: int) -> str:
+def update_protocols(snapshot_id: int, user_id: Optional[int]) -> str:
     """
     Fetches the protocols of a user and stores them in the database with the given Snapshot.
     Args:
@@ -143,7 +156,13 @@ def update_protocols(snapshot_id: int) -> str:
 
     snapshot = Snapshot.objects.get(id=snapshot_id)
 
-    user_addresses = UserAddress.objects.all()
+    if user_id is None:
+        logging.info("Automated daily snapshot update initiated.")
+        user_addresses = UserAddress.objects.all()
+    else:
+        logging.info(f"User initiated a daily snapshot update with user ID: {user_id}")
+        user_addresses = UserAddress.objects.filter(user_id=user_id)
+
     for user_address in user_addresses:
         try:
             logging.info(f"Fetching protocols for user_address: {user_address}")

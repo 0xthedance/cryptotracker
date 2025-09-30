@@ -8,7 +8,6 @@ ERROR_TYPES = {
     "UNKNOWN": "Unknown Error",
 }
 
-
 ETHEREUM_RPC = "ethereum:mainnet:alchemy"
 
 WALLET_TYPES = {

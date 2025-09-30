@@ -346,7 +346,14 @@ def refresh(request: HttpRequest) -> HttpResponse:
     Trigger the tasks asynchronously with a shared Snapshot.
     """
 
-    task_group_result = run_daily_snapshot_update()
+    user = cast(User, request.user)
+
+    user_addresses = list(UserAddress.objects.filter(user=user))
+
+    if not user_addresses:
+        return redirect(reverse("portfolio"))
+
+    task_group_result = run_daily_snapshot_update(user.id)
 
     request.session["task_group_id"] = task_group_result.id
 
