@@ -234,7 +234,7 @@ def update_lqty_stability_pool_v2(
 
 def get_troves(user_address: UserAddress, snapshot: Snapshot) -> None:
     """Query all the troves for a given user_address using The Graph API"""
-    error = ERROR_TYPES["TROBE"]
+    error = ERROR_TYPES["TROVE"]
 
     pool = Pool.objects.get(
         type__name=POOL_TYPES["BORROWING"],
@@ -246,8 +246,8 @@ def get_troves(user_address: UserAddress, snapshot: Snapshot) -> None:
         troves(
             where: {{
                 borrower: "{user_address.public_address}",
-                status_in: ["active"]
-            }}
+                
+            }},
             orderBy: updatedAt
             orderDirection: desc
         ) {{
