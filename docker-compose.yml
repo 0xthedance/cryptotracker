@@ -10,6 +10,10 @@ services:
       - redis
     env_file:
       - ./.env
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - REDIS_URL=redis://redis:6379
     labels:
       com.centurylinklabs.watchtower.enable: "true"
 
@@ -38,6 +42,10 @@ services:
       - redis
     env_file:
       - ./.env
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - REDIS_URL=redis://redis:6379
     labels:
       com.centurylinklabs.watchtower.enable: "true"
 

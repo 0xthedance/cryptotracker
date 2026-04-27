@@ -39,13 +39,27 @@ Crypto Tracker is a Django-based web application designed to help users monitor 
    export ETHERSCAN_API_KEY=your_etherscan_api_key
    export THE_GRAPH_API_KEY=your_graph_api_key
    export COINGECKO_API_KEY=your_coingecko_api_key
-
    ```
 
    - **WEB3_ALCHEMY_PROJECT_ID**: Required for blockchain interactions via Alchemy.
    - **ETHERSCAN_API_KEY**: Used for fetching blockchain data from Etherscan.
    - **API_KEY_THE_GRAPH**: Required for querying data from The Graph.
    - **COINGECKO_API_KEY**: Used for fetching cryptocurrency price data.
+
+  (For docker, remove the export keywords)
+
+  You can use the template given by first copying into the final env file and then filling in your keys.
+  For local running:
+   ```bash
+   cp env.local.template .env.local
+   # Fill in your keys, then:
+   source .env.local
+   ```
+
+  For docker:
+   ```bash
+   cp env.docker.template .env.docker
+   ```
 
 ### Run Locally
 
