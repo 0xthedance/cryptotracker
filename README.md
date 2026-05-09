@@ -39,12 +39,14 @@ Crypto Tracker is a Django-based web application designed to help users monitor 
    export ETHERSCAN_API_KEY=your_etherscan_api_key
    export THE_GRAPH_API_KEY=your_graph_api_key
    export COINGECKO_API_KEY=your_coingecko_api_key
+   export BEACONCHAIN_API_KEY=your_beaconchain_api_key
    ```
 
    - **WEB3_ALCHEMY_PROJECT_ID**: Required for blockchain interactions via Alchemy.
    - **ETHERSCAN_API_KEY**: Used for fetching blockchain data from Etherscan.
-   - **API_KEY_THE_GRAPH**: Required for querying data from The Graph.
+   - **THE_GRAPH_API_KEY**: Required for querying data from The Graph.
    - **COINGECKO_API_KEY**: Used for fetching cryptocurrency price data.
+   - **BEACONCHAIN_API_KEY**: Used for fetching ETH validators data.
 
   (For docker, remove the export keywords)
 
@@ -101,6 +103,12 @@ Crypto Tracker is a Django-based web application designed to help users monitor 
    ```bash
    docker run -d -p 6379:6379 --name redis redis:latest
    ```
+
+   Or with:
+   ```bash
+   docker start redis
+   ```
+   if you had run it before.
 
    Then start celery with:
    ```bash
