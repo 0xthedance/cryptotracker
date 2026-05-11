@@ -1,11 +1,48 @@
+import os
+import logging
 from datetime import datetime
 from decimal import Decimal
 from typing import Dict, List, Optional, Union
 
-from cryptotracker.models import Snapshot, UserAddress, Validator, ValidatorSnapshot
-from cryptotracker.utils import APIquery, get_last_price
+import backoff
+import requests
 
-BEACONCHAN_API = "https://beaconcha.in/api/v1/validator"
+from cryptotracker.models import Snapshot, UserAddress, Validator, ValidatorSnapshot
+from cryptotracker.utils import get_last_price, log_backoff
+
+BEACONCHAIN_API_URL_V2 = "https://beaconcha.in/api/v2/ethereum"
+BEACONCHAIN_API_KEY = os.environ.get("BEACONCHAIN_API_KEY")
+
+if not BEACONCHAIN_API_KEY:
+    logging.warning(
+        "BEACONCHAIN_API_KEY environment variable not set. beaconcha.in API calls will fail."
+    )
+
+
+@backoff.on_exception(
+    backoff.expo,
+    (requests.exceptions.RequestException, ValueError, KeyError),
+    max_tries=3,
+    max_time=180,
+    on_backoff=log_backoff,
+)
+def beaconcha_v2_post(endpoint: str, payload: Dict) -> Optional[Dict]:
+    url = f"{BEACONCHAIN_API_URL_V2}{endpoint}"
+    headers = {
+        "Authorization": f"Bearer {BEACONCHAIN_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+    except requests.exceptions.RequestException as e:
+        logging.error(f"{url} request failed: {e}")
+        return None
+    if response.status_code != 200:
+        logging.error(
+            f"{url} request failed with HTTP status code {response.status_code} and text {response.text}"
+        )
+        return None
+    return response.json()
 
 
 class ValidatorDetails:
@@ -129,58 +166,72 @@ def fetch_staking_assets(user_address: UserAddress, snapshot: Snapshot) -> None:
 
 def get_validators_from_withdrawal(user_address: str) -> List[int]:
     """
-    Get the validator indexes from the withdrawal credentials using Beaconcha API.
+    Get the validator indexes from the withdrawal credentials using Beaconcha API V2.
     Args:
         user_address (str): The withdrawal credentials user_address.
     Returns:
         list: A list of validator indexes.
     """
     validators: List[int] = []
-    params = {"limit": 10, "offset": 0}
+    cursor = ""
 
-    url = f"{BEACONCHAN_API}/withdrawalCredentials/{user_address}"
-    # Fetch validator data from the API
-    data = APIquery(url, params=params)
-    if data is None:
-        return []
+    while True:
+        payload = {
+            "chain": "mainnet",
+            "validator": {"withdrawal": user_address},
+            "page_size": 10,
+        }
+        if cursor:
+            payload["cursor"] = cursor
 
-    for validator in data["data"]:
-        validator_index = validator["validatorindex"]
-        validators.append(validator_index)
+        data = beaconcha_v2_post("/validators", payload)
+        if data is None:
+            return validators
+
+        for item in data["data"]:
+            validators.append(item["validator"]["index"])
+
+        next_cursor = data.get("paging", {}).get("next_cursor")
+        if not next_cursor:
+            break
+        cursor = next_cursor
 
     return validators
 
 
 def get_validators_info(validator_indexes: List[int]) -> List[ValidatorDetails]:
     """
-    Get the validator details from the Beaconcha API.
+    Get the validator details from the Beaconcha API V2.
     Args:
         validator_indexes (list): A list of validator indexes.
     Returns:
         list: A list of ValidatorDetails objects.
     """
     validator_details_list: List[ValidatorDetails] = []
-    validator_indexes_str = ",".join(map(str, validator_indexes))
-    url = f"{BEACONCHAN_API}/{validator_indexes_str}"
-    params: dict = {}
 
-    data = APIquery(url, params)
+    payload = {
+        "chain": "mainnet",
+        "validator": {"validator_identifiers": validator_indexes},
+        "page_size": 10,
+    }
+    data = beaconcha_v2_post("/validators", payload)
     if data is None:
         return []
 
-    if isinstance(data["data"], dict):
-        data["data"] = [data["data"]]
-
-    for validator in data["data"]:
-        if validator["status"] == "exited":
+    for item in data["data"]:
+        status = item["status"]
+        if status.startswith("exited") or status.startswith("withdrawal"):
             continue
 
-        index = validator["validatorindex"]
-        public_key = validator["pubkey"]
-        withdrawal_credentials = validator["withdrawalcredentials"]
-        balance = validator["balance"] / 1e9  # Convert Gwei to Decimal
-        activation_date = convert_epoch_datetime(validator["activationepoch"])
-        status = validator["status"]
+        index = item["validator"]["index"]
+        public_key = item["validator"]["public_key"]
+        withdrawal_credentials = item["withdrawal_credentials"]["credential"]
+        balance = int(item["balances"]["current"]) / 1e18  # Convert wei to ETH
+        activation_epoch = item["life_cycle_epochs"]["activation"]
+        if activation_epoch is not None:
+            activation_date = convert_epoch_datetime(activation_epoch)
+        else:
+            activation_date = ""
 
         validator_details = ValidatorDetails(
             index, public_key, withdrawal_credentials, balance, status, activation_date
@@ -192,40 +243,41 @@ def get_validators_info(validator_indexes: List[int]) -> List[ValidatorDetails]:
 
 def get_rewards(validator_indexes: List[int]) -> Dict[str, Dict[str, float]]:
     """
-    Get the rewards for a list of validator indexes fetching
-    execution and consensus rewards from BEACONCHA API.
+    Get the rewards for a list of validator indexes using
+    the Beaconcha API V2 rewards-list endpoint.
     Args:
         validator_indexes (list): A list of validator indexes.
     Returns:
         dict: A dictionary containing rewards for each validator.
     """
     rewards: Dict[str, Dict[str, float]] = {}
-    validator_indexes_str = ",".join(map(str, validator_indexes))
-    # Fetch rewards data from the API
-    # Get the current execution reward performance
-    url = f"{BEACONCHAN_API}/{validator_indexes_str}/execution/performance"
-    data = APIquery(url, {})
-    if data is not None:
-        for validator in data["data"]:
-            index = str(validator["validatorindex"])
-            # Initialize the rewards dictionary for the validator
-            if index not in rewards:
-                rewards[index] = {}
-            rewards[index]["executionperformance"] = (
-                validator["performanceTotal"] / 1e18
-            )
+    if not validator_indexes:
+        return rewards
 
-    # Get the current consensus reward performance
-    url = f"{BEACONCHAN_API}/{validator_indexes_str}/performance"
-    data = APIquery(url, {})
+    for idx in validator_indexes:
+        rewards[str(idx)] = {"performance": 0}
+
+    state_data = beaconcha_v2_post("/state", {"chain": "mainnet"})
+    if state_data is None:
+        return rewards
+    current_epoch = state_data.get("data", {}).get("current_epoch")
+    if current_epoch is None:
+        return rewards
+
+    epoch = max(0, current_epoch - 1)
+
+    payload = {
+        "chain": "mainnet",
+        "validator": {"validator_identifiers": validator_indexes},
+        "epoch": epoch,
+    }
+    data = beaconcha_v2_post("/validators/rewards-list", payload)
     if data is not None:
-        for validator in data["data"]:
-            index = str(validator["validatorindex"])
-            rewards[index]["consensusperformance"] = validator["performancetotal"] / 1e9
-            rewards[index]["performance"] = (
-                rewards[index]["executionperformance"]
-                + rewards[index]["consensusperformance"]
-            )
+        for item in data["data"]:
+            index = str(item["validator"]["index"])
+            total_wei = int(item["total"])
+            rewards[index]["performance"] = total_wei / 1e18  # Convert wei to ETH
+
     return rewards
 
 

@@ -12,7 +12,7 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
 
     env:
-      API_KEY_THE_GRAPH: ${{ secrets.API_KEY_THE_GRAPH }}
+      THE_GRAPH_API_KEY: ${{ secrets.THE_GRAPH_API_KEY }}
       ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
       WEB3_ALCHEMY_PROJECT_ID: ${{ secrets.WEB3_ALCHEMY_PROJECT_ID }}
 

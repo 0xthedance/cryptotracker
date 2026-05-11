@@ -56,7 +56,7 @@ def update_cryptocurrency_price(self, snapshot_id: int) -> str:
     Returns:
         str: A success message.
     """
-    logging.info("Updating cryptocurrency prices...", snapshot_id)
+    logging.info(f"Updating cryptocurrency prices... {snapshot_id}")
     snapshot = Snapshot.objects.get(id=snapshot_id)
     cryptocurrencies = Cryptocurrency.objects.all()
     crypto_ids = [crypto.name for crypto in cryptocurrencies]
